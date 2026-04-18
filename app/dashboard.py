@@ -32,25 +32,6 @@ st.markdown("""
         color: #666;
         margin-bottom: 2rem;
     }
-    .metric-card {
-        background: #1a1a1a;
-        color: white;
-        border-radius: 10px;
-        padding: 1.2rem 1.5rem;
-        text-align: center;
-    }
-    .metric-value {
-        font-size: 1.8rem;
-        font-weight: 800;
-    }
-    .metric-label {
-        font-size: 0.8rem;
-        color: #aaa;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .status-ok   { color: #2ecc71; font-weight: bold; }
-    .status-miss { color: #e74c3c; font-weight: bold; }
     .section-title {
         font-size: 1.2rem;
         font-weight: 700;
@@ -97,13 +78,23 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # TAB 1 · EDA
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
+
+    # ── Filtro por tipo de propiedad ──────────────────────────────────────────
+    tipos_disponibles = sorted(df["property_type"].unique().tolist())
+    tipos_sel = st.multiselect(
+        "Filtrar por tipo de propiedad",
+        options=tipos_disponibles,
+        default=["appartement", "maison", "villa"],
+    )
+    df_filtrado = df[df["property_type"].isin(tipos_sel)] if tipos_sel else df
+    st.caption(f"Mostrando {len(df_filtrado):,} viviendas".replace(",", "."))
+
     st.markdown('<div class="section-title">Distribución de precios</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
-
     with col1:
         fig = px.histogram(
-            df, x=TARGET, nbins=80,
+            df_filtrado, x=TARGET, nbins=80,
             title="Distribución del precio (€)",
             labels={TARGET: "Precio (€)"},
             color_discrete_sequence=["#1a1a1a"],
@@ -113,22 +104,18 @@ with tab1:
 
     with col2:
         fig = px.box(
-            df, x="property_type", y=TARGET,
+            df_filtrado, x="property_type", y=TARGET,
             title="Precio por tipo de propiedad",
             labels={TARGET: "Precio (€)", "property_type": "Tipo"},
             color_discrete_sequence=["#1a1a1a"],
         )
-        fig.update_layout(
-            xaxis_tickangle=-35,
-            plot_bgcolor="#f5f0eb",
-            paper_bgcolor="#f5f0eb",
-        )
+        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Precio por ciudad (top 20)</div>', unsafe_allow_html=True)
 
     top_cities = (
-        df.groupby("city")[TARGET]
+        df_filtrado.groupby("city")[TARGET]
         .median()
         .sort_values(ascending=False)
         .head(20)
@@ -142,6 +129,42 @@ with tab1:
         color_continuous_scale=["#e8e0d5", "#1a1a1a"],
     )
     fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-35)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Mapa de Francia ───────────────────────────────────────────────────────
+    st.markdown('<div class="section-title">Mapa de precios por ubicación</div>', unsafe_allow_html=True)
+
+    mapa_df = (
+        df_filtrado
+        .assign(
+            lat=df_filtrado["approximate_latitude"].round(1),
+            lon=df_filtrado["approximate_longitude"].round(1),
+        )
+        .groupby(["lat", "lon"])
+        .agg(
+            precio_mediano=(TARGET, "median"),
+            n=(TARGET, "count"),
+            precio_m2=("price_per_m2", "median"),
+        )
+        .reset_index()
+    )
+
+    fig = px.scatter_mapbox(
+        mapa_df,
+        lat="lat", lon="lon",
+        color="precio_mediano",
+        size="n",
+        size_max=20,
+        zoom=5,
+        center={"lat": 46.5, "lon": 2.5},
+        color_continuous_scale=["#e8e0d5", "#888", "#1a1a1a"],
+        hover_data={"precio_mediano": ":,.0f", "precio_m2": ":,.0f", "n": True, "lat": False, "lon": False},
+        labels={"precio_mediano": "Precio mediano (€)", "precio_m2": "€/m²", "n": "Viviendas"},
+        title="Distribución geográfica del precio mediano",
+        mapbox_style="carto-positron",
+        height=550,
+    )
+    fig.update_layout(paper_bgcolor="#f5f0eb", margin={"r": 0, "t": 40, "l": 0, "b": 0})
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Correlación entre variables numéricas</div>', unsafe_allow_html=True)
@@ -182,11 +205,11 @@ with tab1:
 
     st.markdown('<div class="section-title">Precio vs Superficie</div>', unsafe_allow_html=True)
 
-    sample = df.sample(min(3000, len(df)), random_state=42)
+    sample = df_filtrado.sample(min(3000, len(df_filtrado)), random_state=42)
     fig = px.scatter(
         sample, x="size", y=TARGET,
         color="property_type",
-        title="Precio vs Superficie (muestra de 3.000 viviendas)",
+        title="Precio vs Superficie (muestra de hasta 3.000 viviendas)",
         labels={"size": "Superficie (m²)", TARGET: "Precio (€)"},
         opacity=0.5,
     )
@@ -289,16 +312,13 @@ with tab3:
     else:
         st.success(f"✅ Modelos cargados: {', '.join(available)}")
 
-    # Estado de modelos
     st.markdown('<div class="section-title">Estado de los modelos</div>', unsafe_allow_html=True)
     cols = st.columns(3)
     for i, (name, loaded) in enumerate(model_status.items()):
         with cols[i]:
             status = "✅ Listo" if loaded else "⏳ Pendiente"
-            color  = "normal" if loaded else "off"
             st.metric(name, status)
 
-    # Métricas comparativas
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
@@ -315,7 +335,6 @@ with tab3:
     if demo_mode:
         st.caption("*Valores de demostración — se actualizarán automáticamente cuando se añadan los modelos entrenados.*")
 
-    # Gráfico R²
     st.markdown('<div class="section-title">Comparación de R²</div>', unsafe_allow_html=True)
 
     r2_data = pd.DataFrame([
@@ -338,7 +357,6 @@ with tab3:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # Predicción vs Realidad
     st.markdown('<div class="section-title">Predicción vs Realidad</div>', unsafe_allow_html=True)
 
     pred_df = get_demo_predictions()
@@ -384,7 +402,6 @@ with tab4:
         icon="ℹ️"
     )
 
-    # Calcular diferencial por ciudad usando precio mediano real
     city_stats = (
         df.groupby("city")
         .agg(
@@ -395,14 +412,12 @@ with tab4:
         .reset_index()
     )
 
-    # Simulación del precio predicho por zona (demo hasta tener modelo real)
     rng = np.random.default_rng(42)
     noise = rng.normal(0, 0.12, size=len(city_stats))
     city_stats["precio_predicho_mediano"] = city_stats["precio_real_mediano"] * (1 + noise)
     city_stats["diferencial"] = city_stats["precio_real_mediano"] - city_stats["precio_predicho_mediano"]
     city_stats["diferencial_pct"] = (city_stats["diferencial"] / city_stats["precio_predicho_mediano"] * 100).round(1)
 
-    # IC 95% → zonas fuera de ±1.96σ se clasifican como atípicas
     mean_diff = city_stats["diferencial_pct"].mean()
     std_diff  = city_stats["diferencial_pct"].std()
     umbral    = 1.96 * std_diff
@@ -411,8 +426,7 @@ with tab4:
         lambda x: "Atípica" if abs(x - mean_diff) > umbral else "Tendencial"
     )
 
-    # KPIs
-    n_atipicas    = (city_stats["clasificacion"] == "Atípica").sum()
+    n_atipicas     = (city_stats["clasificacion"] == "Atípica").sum()
     n_tendenciales = (city_stats["clasificacion"] == "Tendencial").sum()
 
     col1, col2, col3 = st.columns(3)
@@ -420,7 +434,6 @@ with tab4:
     col2.metric("Zonas tendenciales", n_tendenciales)
     col3.metric("Zonas atípicas", f"⚠️ {n_atipicas}")
 
-    # Gráfico de dispersión diferencial
     st.markdown('<div class="section-title">Diferencial por zona (%)</div>', unsafe_allow_html=True)
 
     top_n = st.slider("Mostrar top N ciudades por número de viviendas", 10, 80, 30)
@@ -440,13 +453,11 @@ with tab4:
     fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", height=600)
     st.plotly_chart(fig, use_container_width=True)
 
-    # Tabla de zonas atípicas
     st.markdown('<div class="section-title">Zonas atípicas detectadas</div>', unsafe_allow_html=True)
 
     atipicas = city_stats[city_stats["clasificacion"] == "Atípica"].sort_values(
         "diferencial_pct", key=abs, ascending=False
     )[["city", "precio_real_mediano", "precio_predicho_mediano", "diferencial_pct", "n_viviendas"]]
-
     atipicas.columns = ["Ciudad", "Precio real mediano (€)", "Precio predicho mediano (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicas, use_container_width=True, hide_index=True)
 
