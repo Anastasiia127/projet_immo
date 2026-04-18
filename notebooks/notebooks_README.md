@@ -1,18 +1,19 @@
 # Carpeta de notebooks
 
-Aquí cada miembro del equipo coloca su notebook de entrenamiento.
+Aquí cada miembro del equipo coloca su script o notebook de entrenamiento.
 
 ## Estructura recomendada
 
 ```
 notebooks/
-├── 01_EDA.ipynb                  # Análisis exploratorio
-├── 02_linear_regression.ipynb    # Regresión Lineal / Ridge
-├── 03_random_forest.ipynb        # Random Forest
-└── 04_mlp.ipynb                  # Red Neuronal (MLP)
+├── 01_EDA.py                     # Análisis exploratorio (Spyder)
+├── 02_linear_regression.py       # Regresión Lineal / Ridge
+├── 03_random_forest.py           # Random Forest
+└── 04_mlp.py                     # Red Neuronal (MLP)
 ```
+> Si usáis Jupyter, los archivos serán `.ipynb` en lugar de `.py` — funciona igual.
 
-## Cómo usar preprocessing desde el notebook
+## Cómo usar preprocessing desde el script
 
 ```python
 import sys
@@ -48,7 +49,7 @@ print(metrics)
 ```python
 import joblib
 
-# Al final del notebook, guardar el modelo entrenado
+# Al final del script, guardar el modelo entrenado
 joblib.dump(modelo, '../models/random_forest.pkl')
 
 # El dashboard lo detecta automáticamente
@@ -61,3 +62,8 @@ joblib.dump(modelo, '../models/random_forest.pkl')
 | Regresión Lineal / Ridge | `../models/linear_regression.pkl` |
 | Random Forest | `../models/random_forest.pkl` |
 | MLP | `../models/mlp.pkl` |
+
+## Nota para usuarios de Spyder
+
+En Spyder, asegúrate de que el **directorio de trabajo** está en la carpeta `notebooks/`.
+Se puede cambiar arriba a la derecha donde pone la ruta de la carpeta actual.
