@@ -13,55 +13,71 @@ notebooks/
 ```
 > Si usáis Jupyter, los archivos serán `.ipynb` en lugar de `.py` — funciona igual.
 
-## Cómo usar preprocessing desde el script
+---
+
+## Plantilla completa — copiar y pegar en vuestro script
 
 ```python
 import sys
 sys.path.insert(0, '..')  # Para importar desde src/
 
-from src.preprocessing import load_and_prepare, get_features_and_target
+import joblib
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
-# Cargar y preparar datos
-df = load_and_prepare('../data/dataset_corregido.xlsx')
+from src.preprocessing import load_and_prepare, get_features_and_target
+from src.model_loader import get_metrics
+from src.anomaly_detection import clasificar_zonas, resumen_anomalias, exportar_resultados
 
-# Obtener X e y
+# ── 1. Cargar y preparar datos ─────────────────────────────────────────────
+df = load_and_prepare('../data/dataset_corregido.xlsx')
 X, y = get_features_and_target(df)
 
-# Split 80/20
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
-```
 
-## Cómo calcular métricas
+# ── 2. Entrenar modelo ─────────────────────────────────────────────────────
+# (sustituir por vuestro modelo: LinearRegression, RandomForest, MLP...)
+from sklearn.ensemble import RandomForestRegressor
 
-```python
-from src.model_loader import get_metrics
+modelo = RandomForestRegressor(random_state=42)
+modelo.fit(X_train, y_train)
+
+# ── 3. Predecir y calcular métricas ───────────────────────────────────────
+predictions = modelo.predict(X_test)
 
 metrics = get_metrics("Random Forest", y_test, predictions)
-print(metrics)
-# {'RMSE': 72000, 'MAE': 48000, 'R2': 0.78}
-```
+print("RMSE:", metrics["RMSE"])
+print("MAE: ", metrics["MAE"])
+print("R²:  ", metrics["R2"])
 
-## Cómo guardar el modelo para el dashboard
+# ── 4. Detectar anomalías por zona ─────────────────────────────────────────
+df_test = df.iloc[X_test.index].copy()
+df_test["price_pred"] = predictions
 
-```python
-import joblib
+resultado = clasificar_zonas(df_test, col_zona="city", col_real="price", col_pred="price_pred")
+resumen_anomalias(resultado)
 
-# Al final del script, guardar el modelo entrenado
+# ── 5. Exportar resultados ─────────────────────────────────────────────────
+exportar_resultados(resultado, path="../outputs/predicciones.csv")
+
+# ── 6. Guardar modelo para el dashboard ───────────────────────────────────
 joblib.dump(modelo, '../models/random_forest.pkl')
-
-# El dashboard lo detecta automáticamente
+print("Modelo guardado en models/random_forest.pkl")
 ```
 
-## Nombres de archivo esperados
+---
+
+## Nombres de archivo esperados por el dashboard
 
 | Modelo | Archivo |
 |---|---|
 | Regresión Lineal / Ridge | `../models/linear_regression.pkl` |
 | Random Forest | `../models/random_forest.pkl` |
 | MLP | `../models/mlp.pkl` |
+
+---
 
 ## Nota para usuarios de Spyder
 
