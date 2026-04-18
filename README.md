@@ -45,27 +45,29 @@ projet_immo/
 
 ---
 
-## Instalación
+## Cómo ejecutar el proyecto
 
+### Paso 1 — Clonar el repositorio
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/projet_immo.git
+git clone https://github.com/Anastasiia127/projet_immo.git
 cd projet_immo
-
-# 2. Crear entorno virtual
-python -m venv venv
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
-
-# 3. Instalar dependencias
-pip install -r requirements.txt
-
-# 4. Añadir el dataset
-# Copiar dataset_corregido.xlsx dentro de la carpeta data/
-
-# 5. Lanzar el dashboard
-streamlit run app/dashboard.py
 ```
+
+### Paso 2 — Instalar dependencias
+```bash
+pip install -r requirements.txt
+```
+> Si `pip` no funciona, usar: `python -m pip install -r requirements.txt`
+
+### Paso 3 — Añadir el dataset
+Copiar manualmente el archivo `dataset_corregido.xlsx` dentro de la carpeta `data/`.  
+El archivo no está en el repositorio por su tamaño.
+
+### Paso 4 — Lanzar el dashboard
+```bash
+python -m streamlit run app/dashboard.py
+```
+Se abrirá automáticamente en el navegador en `http://localhost:8501`
 
 ---
 
@@ -76,7 +78,6 @@ Cuando los modelos estén entrenados, guardarlos así desde el notebook:
 ```python
 import joblib
 
-# Guardar modelo
 joblib.dump(modelo, 'models/linear_regression.pkl')
 joblib.dump(modelo, 'models/random_forest.pkl')
 joblib.dump(modelo, 'models/mlp.pkl')
