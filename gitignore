@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.Python
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Modelos entrenados (archivos pesados — los comparten por separado)
+models/*.pkl
+models/*.joblib
+
+# Outputs generados automáticamente
+outputs/*.csv
+outputs/*.parquet
+
+# Datos originales (no subir al repo por tamaño)
+data/*.xlsx
+data/*.csv
+
+# IDE
+.vscode/
+.idea/
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
