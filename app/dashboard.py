@@ -114,6 +114,7 @@ with tab1:
         )
         fig.update_layout(bargap=0.05, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("📊 Cada barra representa un rango de precios. El pico más alto indica el precio más frecuente. La cola larga a la derecha revela la presencia de viviendas muy caras (outliers).")
 
     with col2:
         fig = px.box(
@@ -124,8 +125,10 @@ with tab1:
         )
         fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
 
     st.markdown('<div class="section-title">Precio por ciudad (top 20)</div>', unsafe_allow_html=True)
+    st.caption("Se usa la **mediana** y no la media porque es más robusta frente a precios extremos. Las ciudades de la costa (Cannes, Niza) y París suelen liderar este ranking.")
 
     top_cities = (
         df_filtrado.groupby("city")[TARGET]
@@ -146,6 +149,7 @@ with tab1:
 
     # ── Mapa de Francia ───────────────────────────────────────────────────────
     st.markdown('<div class="section-title">Mapa de precios por ubicación</div>', unsafe_allow_html=True)
+    st.caption("🟢 Verde = precio bajo · 🟡 Amarillo = precio medio · 🔴 Rojo = precio alto. El **tamaño** de cada punto indica cuántas viviendas hay en esa zona. Pasa el ratón por encima para ver el detalle.")
 
     mapa_df = (
         df_filtrado
@@ -190,6 +194,7 @@ with tab1:
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Correlación entre variables numéricas</div>', unsafe_allow_html=True)
+    st.caption("Valores cercanos a **+1**: correlación positiva fuerte (ambas variables suben juntas). Cercanos a **-1**: correlación negativa. Cercanos a **0**: sin relación. Las variables con mayor correlación con `price` son las más útiles para el modelo.")
 
     num_cols = [c for c in NUMERICAL_FEATURES if c in df.columns] + [TARGET]
     corr = df[num_cols].corr()
@@ -204,6 +209,7 @@ with tab1:
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Valores nulos por columna</div>', unsafe_allow_html=True)
+    st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 70% (floor, land_size, exposition) se excluyen directamente. El resto se imputa con la mediana o la moda.")
 
     nulls = df.isnull().sum().reset_index()
     nulls.columns = ["columna", "nulos"]
@@ -226,6 +232,7 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Precio vs Superficie</div>', unsafe_allow_html=True)
+    st.caption("Relación entre el tamaño de la vivienda (m²) y su precio (€). Idealmente deberíamos ver una tendencia positiva: a mayor superficie, mayor precio. Los puntos muy separados de esa tendencia son anomalías interesantes.")
 
     sample = df_filtrado.sample(min(3000, len(df_filtrado)), random_state=42)
     fig = px.scatter(
