@@ -89,6 +89,19 @@ with tab1:
     df_filtrado = df[df["property_type_group"].isin(tipos_sel)] if tipos_sel else df
     st.caption(f"Mostrando {len(df_filtrado):,} viviendas".replace(",", "."))
 
+    with st.expander("ℹ️ ¿Qué incluye cada grupo?"):
+        st.markdown("""
+        | Grupo | Tipos originales (francés) |
+        |---|---|
+        | **apartamento** | appartement, duplex, loft, chambre, péniche |
+        | **casa** | maison, villa, chalet, ferme, gîte, moulin, manoir, château, hôtel particulier |
+        | **terreno** | terrain, terrain à bâtir |
+        | **local_comercial** | parking, atelier, hôtel |
+        | **otro** | divers, viager, propriété |
+
+        *Los tipos están en francés porque el dataset proviene del Institut Louis Bachelier (Francia).*
+        """)
+
     st.markdown('<div class="section-title">Distribución de precios</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)

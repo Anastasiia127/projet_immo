@@ -61,9 +61,9 @@ PROPERTY_TYPE_GROUPS = {
     "terrain":          "terreno",
     "terrain à bâtir":  "terreno",
 
-    "parking":     "garaje_otro",
-    "atelier":     "garaje_otro",
-    "hôtel":       "garaje_otro",
+    "parking":     "local_comercial",
+    "atelier":     "local_comercial",
+    "hôtel":       "local_comercial",
 
     "divers":      "otro",
     "viager":      "otro",
@@ -181,7 +181,7 @@ def group_property_types(df):
     Agrupa los 22 tipos de propiedad en 5 categorías manejables.
     Recomendación del profesor: reducir dimensionalidad del encoding.
 
-    Grupos: apartamento, casa, terreno, garaje_otro, otro
+    Grupos: apartamento, casa, terreno, local_comercial, otro
     """
     df = df.copy()
     df["property_type_group"] = df["property_type"].map(PROPERTY_TYPE_GROUPS).fillna("otro")
