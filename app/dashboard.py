@@ -80,13 +80,13 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
 
     # ── Filtro por tipo de propiedad ──────────────────────────────────────────
-    tipos_disponibles = sorted(df["property_type"].unique().tolist())
+    tipos_disponibles = sorted(df["property_type_group"].unique().tolist())
     tipos_sel = st.multiselect(
         "Filtrar por tipo de propiedad",
         options=tipos_disponibles,
-        default=["appartement", "maison", "villa"],
+        default=["apartamento", "casa"],
     )
-    df_filtrado = df[df["property_type"].isin(tipos_sel)] if tipos_sel else df
+    df_filtrado = df[df["property_type_group"].isin(tipos_sel)] if tipos_sel else df
     st.caption(f"Mostrando {len(df_filtrado):,} viviendas".replace(",", "."))
 
     st.markdown('<div class="section-title">Distribución de precios</div>', unsafe_allow_html=True)
@@ -104,9 +104,9 @@ with tab1:
 
     with col2:
         fig = px.box(
-            df_filtrado, x="property_type", y=TARGET,
+            df_filtrado, x="property_type_group", y=TARGET,
             title="Precio por tipo de propiedad",
-            labels={TARGET: "Precio (€)", "property_type": "Tipo"},
+            labels={TARGET: "Precio (€)", "property_type_group": "Tipo"},
             color_discrete_sequence=["#1a1a1a"],
         )
         fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
@@ -217,9 +217,9 @@ with tab1:
     sample = df_filtrado.sample(min(3000, len(df_filtrado)), random_state=42)
     fig = px.scatter(
         sample, x="size", y=TARGET,
-        color="property_type",
+        color="property_type_group",
         title="Precio vs Superficie (muestra de hasta 3.000 viviendas)",
-        labels={"size": "Superficie (m²)", TARGET: "Precio (€)"},
+        labels={"size": "Superficie (m²)", TARGET: "Precio (€)", "property_type_group": "Tipo"},
         opacity=0.5,
     )
     fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
