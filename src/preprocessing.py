@@ -230,6 +230,19 @@ def compute_distance_to_capital(df):
     return df
 
 
+def add_provincia(df):
+    """
+    Extrae la provincia (departamento) del código postal.
+    Los primeros 2 dígitos del código postal = código de departamento.
+    Reduce las 8.643 ciudades a 96 provincias — más manejable para el modelo.
+    """
+    df = df.copy()
+    df["provincia"] = df["postal_code"].apply(
+        lambda x: str(int(x)).zfill(5)[:2]
+    )
+    return df
+
+
 def clean_data(df):
     """
     Limpieza básica del dataset:
@@ -296,6 +309,7 @@ def load_and_prepare(path=DATA_PATH):
     """
     df = load_data(path)
     df = group_property_types(df)       # agrupa 22 tipos → 5 grupos
+    df = add_provincia(df)               # extrae provincia del código postal
     df = compute_distance_to_capital(df) # distancia a capital de provincia
     df = clean_data(df)
     df = compute_price_per_m2(df)

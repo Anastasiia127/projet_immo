@@ -130,19 +130,26 @@ with tab1:
     st.markdown('<div class="section-title">Precio por ciudad (top 20)</div>', unsafe_allow_html=True)
     st.caption("Se usa la **mediana** y no la media porque es más robusta frente a precios extremos. Las ciudades de la costa (Cannes, Niza) y París suelen liderar este ranking.")
 
-    top_cities = (
-        df_filtrado.groupby("city")[TARGET]
-        .median()
-        .sort_values(ascending=False)
-        .head(20)
+    city_agg = (
+        df_filtrado.groupby(["city", "provincia"])
+        .agg(precio_mediano=(TARGET, "median"), n=(TARGET, "count"))
         .reset_index()
     )
+    # Mínimo 5 viviendas para evitar pueblos con 1 villa muy cara
+    top_cities = (
+        city_agg[city_agg["n"] >= 5]
+        .sort_values("precio_mediano", ascending=False)
+        .head(20)
+    )
+    top_cities["ciudad_provincia"] = top_cities["city"] + " (Dpto. " + top_cities["provincia"] + ")"
+
     fig = px.bar(
-        top_cities, x="city", y=TARGET,
-        title="Precio mediano por ciudad — Top 20",
-        labels={TARGET: "Precio mediano (€)", "city": "Ciudad"},
-        color=TARGET,
+        top_cities, x="ciudad_provincia", y="precio_mediano",
+        title="Precio mediano por ciudad — Top 20 (mín. 5 viviendas)",
+        labels={"precio_mediano": "Precio mediano (€)", "ciudad_provincia": "Ciudad"},
+        color="precio_mediano",
         color_continuous_scale=["#e8e0d5", "#1a1a1a"],
+        hover_data={"n": True, "provincia": True, "ciudad_provincia": False},
     )
     fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-35)
     st.plotly_chart(fig, use_container_width=True)
