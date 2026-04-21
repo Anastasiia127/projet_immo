@@ -43,6 +43,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Carga de datos (cacheada) ──────────────────────────────────────────────────
+
+@st.cache_data(show_spinner="Cargando mapa de departamentos...")
+def get_geojson():
+    """Descarga el GeoJSON de departamentos de Francia (se cachea automáticamente)."""
+    import urllib.request
+    import json
+    url = "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read())
+    except Exception:
+        return None
+
 @st.cache_data(show_spinner="Cargando dataset...")
 def get_data():
     return load_and_prepare()
@@ -281,6 +295,46 @@ with tab1:
     )
     fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
     st.plotly_chart(fig, use_container_width=True)
+
+
+    # ── Mapa choropleth por departamento ──────────────────────────────────────
+    st.markdown('<div class="section-title">Precio mediano por departamento (mapa coroplético)</div>', unsafe_allow_html=True)
+    st.caption("Cada departamento está coloreado según el precio mediano de sus viviendas. 🟢 Verde = más barato · 🔴 Rojo = más caro. Pasa el ratón para ver el nombre y precio.")
+
+    geojson = get_geojson()
+    if geojson:
+        dept_stats = (
+            df_filtrado.groupby("provincia")
+            .agg(precio_mediano=("price", "median"), n=("price", "count"))
+            .reset_index()
+        )
+        dept_stats["nombre"] = dept_stats["provincia"].map(DEPT_NOMBRES).fillna(dept_stats["provincia"])
+
+        fig = px.choropleth_mapbox(
+            dept_stats,
+            geojson=geojson,
+            locations="provincia",
+            featureidkey="properties.code",
+            color="precio_mediano",
+            color_continuous_scale="RdYlGn_r",
+            mapbox_style="carto-positron",
+            zoom=4.5,
+            center={"lat": 46.5, "lon": 2.5},
+            opacity=0.75,
+            hover_name="nombre",
+            hover_data={"precio_mediano": ":,.0f", "n": True, "provincia": False},
+            labels={"precio_mediano": "Precio mediano (€)", "n": "Viviendas"},
+            title="Precio mediano por departamento — 🟢 barato · 🔴 caro",
+            height=600,
+        )
+        fig.update_layout(
+            paper_bgcolor="#f5f0eb",
+            margin={"r": 0, "t": 40, "l": 0, "b": 0},
+            coloraxis_colorbar=dict(title="Precio (€)", tickformat=",.0f"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No se pudo cargar el mapa de departamentos. Verifica tu conexión a internet.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
