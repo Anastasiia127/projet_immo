@@ -154,17 +154,26 @@ with tab1:
         lat="lat", lon="lon",
         color="precio_mediano",
         size="n",
-        size_max=20,
+        size_max=35,
         zoom=5,
         center={"lat": 46.5, "lon": 2.5},
-        color_continuous_scale=["#e8e0d5", "#888", "#1a1a1a"],
+        color_continuous_scale="RdYlGn_r",  # verde=barato, amarillo=medio, rojo=caro
+        range_color=[mapa_df["precio_mediano"].quantile(0.05), mapa_df["precio_mediano"].quantile(0.95)],
         hover_data={"precio_mediano": ":,.0f", "precio_m2": ":,.0f", "n": True, "lat": False, "lon": False},
         labels={"precio_mediano": "Precio mediano (€)", "precio_m2": "€/m²", "n": "Viviendas"},
-        title="Distribución geográfica del precio mediano",
+        title="Distribución geográfica del precio mediano — 🟢 barato · 🟡 medio · 🔴 caro",
         mapbox_style="carto-positron",
-        height=550,
+        height=600,
+        opacity=0.85,
     )
-    fig.update_layout(paper_bgcolor="#f5f0eb", margin={"r": 0, "t": 40, "l": 0, "b": 0})
+    fig.update_layout(
+        paper_bgcolor="#f5f0eb",
+        margin={"r": 0, "t": 40, "l": 0, "b": 0},
+        coloraxis_colorbar=dict(
+            title="Precio (€)",
+            tickformat=",.0f",
+        ),
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Correlación entre variables numéricas</div>', unsafe_allow_html=True)
