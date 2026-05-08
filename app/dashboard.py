@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
-from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_demo_predictions, DEMO_METRICS
+from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_demo_predictions, get_predictions, get_all_predictions, DEMO_METRICS
 
 # ── Configuración de página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -111,11 +111,12 @@ DEPT_NOMBRES = {
 }
 
 # ── Pestañas ───────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Exploración de datos",
     "⚙️ Preprocesamiento",
     "🤖 Modelos",
     "🔍 Anomalías por zona",
+    "🏠 Predecir precio",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -335,6 +336,139 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("No se pudo cargar el mapa de departamentos. Verifica tu conexión a internet.")
+
+
+    # ── Análisis de listings por ciudad y tipo ────────────────────────────────
+    st.markdown('<div class="section-title">Análisis de listings</div>', unsafe_allow_html=True)
+    st.caption("Distribución de anuncios por ciudad, departamento y tipo de propiedad. Basado en el análisis descriptivo del equipo.")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        top_listings = (
+            df.groupby("city").size().reset_index(name="listings")
+            .sort_values("listings", ascending=False).head(20)
+        )
+        fig = px.bar(
+            top_listings, x="city", y="listings",
+            title="Top 20 ciudades por número de anuncios",
+            labels={"listings": "Nº anuncios", "city": "Ciudad"},
+            color="listings", color_continuous_scale=["#a8c8e8", "#1a5fa8"],
+            text="listings",
+        )
+        fig.update_traces(texttemplate="%{text}", textposition="outside")
+        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Ciudades con más anuncios tienen mayor representación — sus precios son más fiables para el modelo.")
+
+    with col2:
+        proptype_counts = (
+            df.groupby("property_type").size().reset_index(name="listings")
+            .sort_values("listings", ascending=False)
+        )
+        proptype_counts["sparse"] = proptype_counts["listings"].apply(
+            lambda x: "< 30 (escaso)" if x < 30 else ">= 30"
+        )
+        fig = px.bar(
+            proptype_counts, x="property_type", y="listings",
+            color="sparse",
+            color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
+            title="Anuncios por tipo de propiedad",
+            labels={"listings": "Nº anuncios", "property_type": "Tipo", "sparse": ""},
+            text="listings",
+        )
+        fig.update_traces(texttemplate="%{text}", textposition="outside")
+        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Tipos en naranja tienen menos de 30 anuncios — pueden causar problemas en el modelo.")
+
+    st.markdown('<div class="section-title">Anuncios por departamento</div>', unsafe_allow_html=True)
+    st.caption("Departamentos con pocos anuncios pueden necesitar agrupación antes del modelado.")
+
+    dept_listings = (
+        df.groupby("provincia").size().reset_index(name="listings")
+        .sort_values("listings", ascending=False)
+    )
+    dept_listings["nombre"] = dept_listings["provincia"].map(DEPT_NOMBRES).fillna(dept_listings["provincia"])
+    dept_listings["sparse"] = dept_listings["listings"].apply(
+        lambda x: "< 30 (escaso)" if x < 30 else ">= 30"
+    )
+    fig = px.bar(
+        dept_listings, x="nombre", y="listings",
+        color="sparse",
+        color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
+        title="Número de anuncios por departamento",
+        labels={"listings": "Nº anuncios", "nombre": "Departamento", "sparse": ""},
+        text="listings",
+    )
+    fig.update_traces(texttemplate="%{text}", textposition="outside")
+    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45, height=450)
+    st.plotly_chart(fig, use_container_width=True)
+
+    sparse_cities = (
+        df.groupby("city").size().reset_index(name="listings")
+        .query("listings < 30").sort_values("listings")
+    )
+    n_sparse = len(sparse_cities)
+    total_sparse = sparse_cities["listings"].sum()
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Ciudades con < 30 anuncios", n_sparse)
+    col2.metric("Anuncios en esas ciudades", f"{total_sparse:,}".replace(",", "."))
+    col3.metric("% del dataset", f"{total_sparse/len(df)*100:.1f}%")
+    st.caption(f"Hay {n_sparse} ciudades subrepresentadas. Se recomienda agruparlas por departamento en el modelo.")
+
+    st.markdown('<div class="section-title">Varianza del precio explicada por cada variable</div>', unsafe_allow_html=True)
+    st.caption("Cuánto explica cada variable la variacion del precio. Mayor valor = mas util para el modelo.")
+
+    @st.cache_data(show_spinner="Calculando varianza explicada...")
+    def compute_variance_explained(_df):
+        from sklearn.linear_model import LinearRegression
+        from sklearn.preprocessing import LabelEncoder
+        import warnings
+        warnings.filterwarnings("ignore")
+        df_var = _df[_df["price"] > 0].copy()
+        df_var["log_price"] = np.log(df_var["price"])
+        results = []
+        skip_cols = {"price", "log_price", "price_per_m2", "id_annonce",
+                     "approximate_latitude", "approximate_longitude", "postal_code"}
+        for col in df_var.columns:
+            if col in skip_cols:
+                continue
+            series = df_var[col].dropna()
+            if len(series) < 100 or series.nunique() < 2:
+                continue
+            try:
+                y = df_var.loc[series.index, "log_price"]
+                if pd.api.types.is_numeric_dtype(series):
+                    X_col = series.values.reshape(-1, 1)
+                    r2 = LinearRegression().fit(X_col, y).score(X_col, y)
+                    results.append({"Variable": col, "Tipo": "numerica", "Eta2": round(r2, 4)})
+                else:
+                    le = LabelEncoder()
+                    X_col = le.fit_transform(series.astype(str)).reshape(-1, 1)
+                    r2 = LinearRegression().fit(X_col, y).score(X_col, y)
+                    results.append({"Variable": col, "Tipo": "categorica", "Eta2": round(r2, 4)})
+            except Exception:
+                continue
+        return pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
+
+    var_df = compute_variance_explained(df)
+    var_df["Efecto"] = var_df["Eta2"].apply(
+        lambda x: "Grande" if x >= 0.14 else ("Medio" if x >= 0.06 else ("Pequeno" if x >= 0.01 else "Negligible"))
+    )
+    fig = px.bar(
+        var_df.sort_values("Eta2"), x="Eta2", y="Variable",
+        color="Efecto",
+        color_discrete_map={"Grande": "#2ca02c", "Medio": "#ff7f0e", "Pequeno": "#1a5fa8", "Negligible": "#d62728"},
+        orientation="h",
+        title="Top 20 variables por varianza explicada en log(precio)",
+        labels={"Eta2": "R2 / eta2", "Variable": "Variable", "Efecto": "Efecto"},
+        text="Eta2",
+    )
+    fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
+    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", height=550)
+    st.plotly_chart(fig, use_container_width=True)
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -582,3 +716,150 @@ with tab4:
     st.dataframe(atipicas, use_container_width=True, hide_index=True)
 
     st.caption("*Los precios predichos son simulados hasta que se añadan los modelos entrenados.*")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 5 · PREDICTOR DE PRECIO
+# ══════════════════════════════════════════════════════════════════════════════
+with tab5:
+    st.markdown('<div class="section-title">Predictor de precio de vivienda</div>', unsafe_allow_html=True)
+
+    available_models = get_available_models()
+    has_model = len(available_models) > 0
+
+    if not has_model:
+        st.info("No hay modelos entrenados disponibles. Las predicciones se basaran en la mediana del dataset filtrado por zona y tipo.", icon="ℹ️")
+
+    st.markdown("Introduce las caracteristicas de la vivienda para obtener una estimacion del precio.")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("**Ubicacion**")
+        provincia_options = sorted(df["provincia"].dropna().unique().tolist())
+        provincia_nombres = {p: DEPT_NOMBRES.get(p, p) for p in provincia_options}
+        provincia_sel = st.selectbox(
+            "Departamento",
+            options=provincia_options,
+            format_func=lambda x: f"{DEPT_NOMBRES.get(x, x)} ({x})",
+        )
+        tipo_sel = st.selectbox(
+            "Tipo de propiedad",
+            options=["apartamento", "casa", "terreno", "local_comercial", "otro"],
+        )
+
+    with col2:
+        st.markdown("**Caracteristicas fisicas**")
+        size_sel      = st.number_input("Superficie (m²)", min_value=10, max_value=1000, value=80, step=5)
+        rooms_sel     = st.number_input("Numero de habitaciones", min_value=1, max_value=20, value=3)
+        bedrooms_sel  = st.number_input("Numero de dormitorios", min_value=0, max_value=15, value=2)
+        bathrooms_sel = st.number_input("Numero de banos", min_value=0, max_value=10, value=1)
+
+    with col3:
+        st.markdown("**Extras**")
+        parking_sel = st.number_input("Plazas de parking", min_value=0, max_value=5, value=0)
+        balcony_sel = st.checkbox("Tiene balcon", value=False)
+        cellar_sel  = st.checkbox("Tiene sotano", value=False)
+        garage_sel  = st.checkbox("Tiene garaje", value=False)
+        ac_sel      = st.checkbox("Tiene aire acondicionado", value=False)
+        energy_sel  = st.selectbox("Clase energetica", options=["A", "B", "C", "D", "E", "F", "G"], index=3)
+
+    st.divider()
+
+    if st.button("Calcular precio estimado", type="primary", use_container_width=True):
+
+        if has_model:
+            # ── Prediccion con modelo real ─────────────────────────────────
+            modelo_usar = available_models[0]
+            modelo = load_model(modelo_usar)
+
+            input_data = pd.DataFrame([{
+                "size":                  size_sel,
+                "nb_rooms":              rooms_sel,
+                "nb_bedrooms":           bedrooms_sel,
+                "nb_bathrooms":          bathrooms_sel,
+                "nb_parking_places":     parking_sel,
+                "nb_boxes":              0,
+                "nb_photos":             10,
+                "nb_terraces":           0,
+                "energy_performance_value": {"A":50,"B":90,"C":150,"D":210,"E":280,"F":350,"G":450}.get(energy_sel, 210),
+                "ghg_value":             20,
+                "dist_capital_provincia": df[df["provincia"] == provincia_sel]["dist_capital_provincia"].median(),
+                "has_a_balcony":         int(balcony_sel),
+                "has_a_cellar":          int(cellar_sel),
+                "has_a_garage":          int(garage_sel),
+                "has_air_conditioning":  int(ac_sel),
+                "last_floor":            0,
+            }])
+
+            # Asegurar que tienen las mismas columnas que X_train
+            from src.preprocessing import get_features_and_target
+            X_ref, _ = get_features_and_target(df)
+            for col in X_ref.columns:
+                if col not in input_data.columns:
+                    input_data[col] = 0
+            input_data = input_data[X_ref.columns]
+
+            precio_pred = modelo.predict(input_data)[0]
+            precio_m2   = precio_pred / size_sel
+            fuente      = f"Modelo: {modelo_usar}"
+
+        else:
+            # ── Estimacion estadistica (sin modelo) ────────────────────────
+            mask = (df["provincia"] == provincia_sel) & (df["property_type_group"] == tipo_sel)
+            subset = df[mask]
+
+            if len(subset) < 5:
+                subset = df[df["provincia"] == provincia_sel]
+            if len(subset) < 5:
+                subset = df
+
+            precio_m2_mediano = subset["price_per_m2"].median()
+            precio_pred       = precio_m2_mediano * size_sel
+            precio_m2         = precio_m2_mediano
+            fuente            = "Estimacion estadistica (mediana del dataset)"
+
+        # ── Resultado ─────────────────────────────────────────────────────
+        st.success("Estimacion calculada")
+
+        r1, r2, r3 = st.columns(3)
+        r1.metric("Precio estimado", f"{int(precio_pred):,} EUR".replace(",", "."))
+        r2.metric("Precio por m2", f"{int(precio_m2):,} EUR/m2".replace(",", "."))
+        r3.metric("Superficie", f"{size_sel} m2")
+
+        st.caption(f"Fuente: {fuente}")
+
+        # Contexto: comparar con la zona
+        zona_stats = df[df["provincia"] == provincia_sel]["price"].describe()
+        dept_name  = DEPT_NOMBRES.get(provincia_sel, provincia_sel)
+
+        st.markdown(f"**Contexto en {dept_name} (Dpto. {provincia_sel}):**")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Precio minimo zona", f"{int(zona_stats['min']):,} EUR".replace(",", "."))
+        c2.metric("Precio mediano zona", f"{int(zona_stats['50%']):,} EUR".replace(",", "."))
+        c3.metric("Precio medio zona", f"{int(zona_stats['mean']):,} EUR".replace(",", "."))
+        c4.metric("Precio maximo zona", f"{int(zona_stats['max']):,} EUR".replace(",", "."))
+
+        # Gauge de posicion relativa
+        pct = (precio_pred - zona_stats["min"]) / (zona_stats["max"] - zona_stats["min"]) * 100
+        pct = max(0, min(100, pct))
+
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=pct,
+            title={"text": f"Posicion relativa en {dept_name}"},
+            gauge={
+                "axis": {"range": [0, 100], "ticksuffix": "%"},
+                "bar":  {"color": "#1a1a1a"},
+                "steps": [
+                    {"range": [0, 33],  "color": "#2ca02c"},
+                    {"range": [33, 66], "color": "#ff7f0e"},
+                    {"range": [66, 100],"color": "#d62728"},
+                ],
+                "threshold": {"line": {"color": "#1a1a1a", "width": 4}, "value": pct},
+            },
+            number={"suffix": "%", "font": {"size": 28}},
+        ))
+        fig.update_layout(paper_bgcolor="#f5f0eb", height=300)
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("0% = precio minimo de la zona · 100% = precio maximo de la zona")

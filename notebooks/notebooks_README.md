@@ -52,30 +52,70 @@ print("RMSE:", metrics["RMSE"])
 print("MAE: ", metrics["MAE"])
 print("R²:  ", metrics["R2"])
 
-# ── 4. Detectar anomalías por zona ─────────────────────────────────────────
+# ── 4. Guardar métricas en CSV para el dashboard ───────────────────────────
+# ⚠️ IMPORTANTE: esto permite que el dashboard muestre vuestros resultados
+# reales sin necesidad de subir el modelo .pkl a GitHub
+pd.DataFrame([{
+    "RMSE": metrics["RMSE"],
+    "MAE":  metrics["MAE"],
+    "R2":   metrics["R2"],
+}]).to_csv("../outputs/metrics_rf.csv", index=False)
+print("Métricas guardadas en outputs/metrics_rf.csv")
+
+# Nombres de archivo por modelo:
+# Regresión Lineal → metrics_linear.csv
+# Random Forest    → metrics_rf.csv
+# MLP              → metrics_mlp.csv
+
+# ── 5. Guardar predicciones en CSV para el dashboard ──────────────────────
+# ⚠️ IMPORTANTE: esto permite ver el gráfico Predicción vs Realidad real
+pd.DataFrame({
+    "y_real": y_test.values,
+    "y_pred": predictions,
+}).to_csv("../outputs/predictions_rf.csv", index=False)
+print("Predicciones guardadas en outputs/predictions_rf.csv")
+
+# Nombres de archivo por modelo:
+# Regresión Lineal → predictions_linear.csv
+# Random Forest    → predictions_rf.csv
+# MLP              → predictions_mlp.csv
+
+# ── 6. Detectar anomalías por zona ─────────────────────────────────────────
 df_test = df.iloc[X_test.index].copy()
 df_test["price_pred"] = predictions
 
 resultado = clasificar_zonas(df_test, col_zona="city", col_real="price", col_pred="price_pred")
 resumen_anomalias(resultado)
 
-# ── 5. Exportar resultados ─────────────────────────────────────────────────
+# ── 7. Exportar resultados de anomalías ────────────────────────────────────
 exportar_resultados(resultado, path="../outputs/predicciones.csv")
 
-# ── 6. Guardar modelo para el dashboard ───────────────────────────────────
+# ── 8. Guardar modelo (opcional — solo local, no va a GitHub) ──────────────
 joblib.dump(modelo, '../models/random_forest.pkl')
 print("Modelo guardado en models/random_forest.pkl")
 ```
 
 ---
 
+## Cómo ver tus resultados en el dashboard (flujo de trabajo)
+
+1. Entrena tu modelo y ejecuta el script completo
+2. Se generan automáticamente los CSV en `outputs/`
+3. Haz `git add outputs/ && git commit -m "Add RF results" && git push`
+4. El resto del equipo hace `git pull` y ve tus resultados reales en el dashboard
+
+> Los archivos `.pkl` son pesados y **no van a GitHub** (están en `.gitignore`).
+> Los CSV de métricas y predicciones **sí van a GitHub** — son ligeros y suficientes para el dashboard.
+
+---
+
 ## Nombres de archivo esperados por el dashboard
 
-| Modelo | Archivo |
-|---|---|
-| Regresión Lineal / Ridge | `../models/linear_regression.pkl` |
-| Random Forest | `../models/random_forest.pkl` |
-| MLP | `../models/mlp.pkl` |
+| Modelo | Métricas | Predicciones |
+|---|---|---|
+| Regresión Lineal / Ridge | `outputs/metrics_linear.csv` | `outputs/predictions_linear.csv` |
+| Random Forest | `outputs/metrics_rf.csv` | `outputs/predictions_rf.csv` |
+| MLP | `outputs/metrics_mlp.csv` | `outputs/predictions_mlp.csv` |
 
 ---
 
