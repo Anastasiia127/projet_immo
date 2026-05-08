@@ -16,14 +16,6 @@ env/
 models/*.pkl
 models/*.joblib
 
-# Outputs generados automáticamente
-outputs/*.csv
-outputs/*.parquet
-
-# Datos originales (no subir al repo por tamaño)
-data/*.xlsx
-data/*.csv
-
 # IDE
 .vscode/
 .idea/
