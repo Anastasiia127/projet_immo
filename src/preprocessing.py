@@ -4,6 +4,7 @@ from pathlib import Path
 
 # Ruta por defecto al dataset
 DATA_PATH = Path(__file__).parent.parent / "data" / "dataset_corregido.xlsx"
+POP_PATH  = Path(__file__).parent.parent / "data" / "population_departements.csv"
 
 # Variables numéricas que se usan en el modelo
 NUMERICAL_FEATURES = [
@@ -18,6 +19,7 @@ NUMERICAL_FEATURES = [
     "energy_performance_value",
     "ghg_value",
     "dist_capital_provincia",   # ← nueva variable derivada (recomendación profesor)
+    "anuncios_por_100k_hab",     # ← oferta/demanda por departamento (recomendación David/profe)
 ]
 
 # Variables binarias (0/1) que se usan en el modelo
@@ -243,6 +245,53 @@ def add_provincia(df):
     return df
 
 
+def compute_oferta_demanda(df):
+    """
+    Calcula la variable oferta/demanda por departamento.
+    
+    Formula: (nº anuncios en el departamento / población del departamento) * 100.000
+    Resultado: anuncios por cada 100.000 habitantes.
+    
+    Intuicion: departamentos con muchos anuncios respecto a su poblacion tienen
+    mayor oferta → presion bajista sobre precios. Departamentos con pocos anuncios
+    tienen menos oferta → presion alcista.
+    
+    Requiere: data/population_departements.csv
+    """
+    df = df.copy()
+
+    if not POP_PATH.exists():
+        # Si no existe el CSV de poblacion, rellenar con mediana
+        df["anuncios_por_100k_hab"] = np.nan
+        df["anuncios_por_100k_hab"] = df["anuncios_por_100k_hab"].fillna(0)
+        return df
+
+    pop_df = pd.read_csv(POP_PATH, dtype={"departement": str})
+    pop_df["departement"] = pop_df["departement"].str.zfill(2)
+
+    # Contar anuncios por provincia
+    anuncios_por_dept = df.groupby("provincia").size().reset_index(name="n_anuncios")
+    anuncios_por_dept["provincia"] = anuncios_por_dept["provincia"].astype(str).str.zfill(2)
+
+    # Merge con poblacion
+    merged = anuncios_por_dept.merge(
+        pop_df[["departement", "population"]],
+        left_on="provincia", right_on="departement", how="left"
+    )
+    merged["anuncios_por_100k_hab"] = (merged["n_anuncios"] / merged["population"]) * 100_000
+
+    # Unir al dataframe principal
+    df["provincia"] = df["provincia"].astype(str).str.zfill(2)
+    df = df.merge(
+        merged[["provincia", "anuncios_por_100k_hab"]],
+        on="provincia", how="left"
+    )
+    df["anuncios_por_100k_hab"] = df["anuncios_por_100k_hab"].fillna(df["anuncios_por_100k_hab"].median())
+
+    return df
+
+
+
 def clean_data(df):
     """
     Limpieza básica del dataset:
@@ -311,6 +360,7 @@ def load_and_prepare(path=DATA_PATH):
     df = group_property_types(df)       # agrupa 22 tipos → 5 grupos
     df = add_provincia(df)               # extrae provincia del código postal
     df = compute_distance_to_capital(df) # distancia a capital de provincia
+    df = compute_oferta_demanda(df)      # anuncios por 100k habitantes (oferta/demanda)
     df = clean_data(df)
     df = compute_price_per_m2(df)
     return df
