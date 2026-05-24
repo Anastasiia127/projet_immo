@@ -8,8 +8,9 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
+from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, get_all_predictions, get_demo_predictions, DEMO_METRICS
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
-from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_demo_predictions, get_predictions, get_all_predictions, DEMO_METRICS
+from src.model_loader import OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES
 
 # ── Configuración de página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -562,38 +563,44 @@ with tab3:
     demo_mode    = len(available) == 0
 
     if demo_mode:
-        st.info("⚠️ No se han encontrado modelos entrenados en `models/`. Mostrando datos de demostración.", icon="ℹ️")
+        st.info("⚠️ No se han encontrado modelos en `models/`. Mostrando datos de demostración.", icon="ℹ️")
     else:
-        st.success(f"✅ Modelos cargados: {', '.join(available)}")
+        has_metrics = any(s["metrics"] for s in model_status.values())
+        if has_metrics:
+            st.success(f"✅ Modelos y métricas cargados: {', '.join(available)}")
+        else:
+            st.warning("✅ Modelos encontrados pero sin métricas CSV. Mostrando métricas de demo.", icon="⚠️")
 
     st.markdown('<div class="section-title">Estado de los modelos</div>', unsafe_allow_html=True)
     cols = st.columns(3)
-    for i, (name, loaded) in enumerate(model_status.items()):
+    for i, (name, status) in enumerate(model_status.items()):
         with cols[i]:
-            status = "✅ Listo" if loaded else "⏳ Pendiente"
-            st.metric(name, status)
+            if status["pkl"] and status["metrics"]:
+                st.metric(name, "✅ Completo")
+            elif status["pkl"]:
+                st.metric(name, "⚠️ Sin métricas")
+            else:
+                st.metric(name, "⏳ Pendiente")
 
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
-    for name in ["Regresión Lineal", "Random Forest", "MLP"]:
+    for name in ["MLP", "Random Forest", "XGBoost"]:
         m = get_metrics(name)
         metrics_data.append({
             "Modelo": name,
-            "RMSE (€)": f"{m['RMSE']:,}".replace(",", "."),
-            "MAE (€)":  f"{m['MAE']:,}".replace(",", "."),
+            "RMSE (€)": f"{m['RMSE']:,.0f}".replace(",", "."),
+            "MAE (€)":  f"{m['MAE']:,.0f}".replace(",", "."),
             "R²":       m["R2"],
+            "Fuente":   "Real" if (OUTPUTS_PATH / METRICS_FILES[name]).exists() else "Demo",
         })
     st.dataframe(pd.DataFrame(metrics_data), use_container_width=True, hide_index=True)
-
-    if demo_mode:
-        st.caption("*Valores de demostración — se actualizarán automáticamente cuando se añadan los modelos entrenados.*")
 
     st.markdown('<div class="section-title">Comparación de R²</div>', unsafe_allow_html=True)
 
     r2_data = pd.DataFrame([
         {"Modelo": name, "R²": get_metrics(name)["R2"]}
-        for name in ["Regresión Lineal", "Random Forest", "MLP"]
+        for name in ["MLP", "Random Forest", "XGBoost"]
     ])
     fig = px.bar(
         r2_data, x="Modelo", y="R²",
@@ -613,9 +620,12 @@ with tab3:
 
     st.markdown('<div class="section-title">Predicción vs Realidad</div>', unsafe_allow_html=True)
 
-    pred_df = get_demo_predictions()
-    model_sel = st.selectbox("Selecciona modelo", ["Regresión Lineal", "Random Forest", "MLP"])
-    subset = pred_df[pred_df["modelo"] == model_sel]
+    model_sel = st.selectbox("Selecciona modelo", ["MLP", "Random Forest", "XGBoost"])
+    subset = get_predictions(model_sel)
+    is_real = (OUTPUTS_PATH / PREDICTIONS_FILES[model_sel]).exists()
+
+    if not is_real:
+        st.caption("*Gráfico generado con datos ficticios. Ejecuta los scripts de entrenamiento para ver predicciones reales.*")
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -632,18 +642,13 @@ with tab3:
         name="Predicción perfecta",
     ))
     fig.update_layout(
-        title=f"Predicción vs Realidad — {model_sel}",
+        title=f"Predicción vs Realidad — {model_sel} {'(real)' if is_real else '(demo)'}",
         xaxis_title="Precio real (€)",
         yaxis_title="Precio predicho (€)",
         plot_bgcolor="#f5f0eb",
         paper_bgcolor="#f5f0eb",
     )
     st.plotly_chart(fig, use_container_width=True)
-
-    if demo_mode:
-        st.caption("*Gráfico generado con datos ficticios. Se reemplazará con predicciones reales al añadir los modelos.*")
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 · ANOMALÍAS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -768,98 +773,94 @@ with tab5:
 
     if st.button("Calcular precio estimado", type="primary", use_container_width=True):
 
-        if has_model:
-            # ── Prediccion con modelo real ─────────────────────────────────
-            modelo_usar = available_models[0]
-            modelo = load_model(modelo_usar)
+        dept       = provincia_sel
+        dept_lat   = df[df["provincia"] == dept]["approximate_latitude"].median()
+        dept_lon   = df[df["provincia"] == dept]["approximate_longitude"].median()
+        tipo_to_group = {"apartamento": "appartement", "casa": "maison", "lujo": "lujo"}
+        property_group = tipo_to_group.get(tipo_sel, "appartement")
 
-            input_data = pd.DataFrame([{
-                "size":                  size_sel,
-                "nb_rooms":              rooms_sel,
-                "nb_bedrooms":           bedrooms_sel,
-                "nb_bathrooms":          bathrooms_sel,
-                "nb_parking_places":     parking_sel,
-                "nb_boxes":              0,
-                "nb_photos":             10,
-                "nb_terraces":           0,
-                "energy_performance_value": {"A":50,"B":90,"C":150,"D":210,"E":280,"F":350,"G":450}.get(energy_sel, 210),
-                "ghg_value":             20,
-                "dist_capital_provincia": df[df["provincia"] == provincia_sel]["dist_capital_provincia"].median(),
-                "has_a_balcony":         int(balcony_sel),
-                "has_a_cellar":          int(cellar_sel),
-                "has_a_garage":          int(garage_sel),
-                "has_air_conditioning":  int(ac_sel),
-                "last_floor":            0,
-            }])
+        input_dict = {
+            "dept":                 dept,
+            "lat":                  dept_lat,
+            "lon":                  dept_lon,
+            "size":                 size_sel,
+            "nb_rooms":             rooms_sel,
+            "nb_bedrooms":          bedrooms_sel,
+            "nb_bathrooms":         bathrooms_sel,
+            "nb_parking_places":    parking_sel,
+            "has_a_balcony":        int(balcony_sel),
+            "has_a_cellar":         int(cellar_sel),
+            "has_a_garage":         int(garage_sel),
+            "has_air_conditioning": int(ac_sel),
+            "has_energy_cert":      1,
+            "has_ghg_value":        0,
+            "property_group":       property_group,
+        }
 
-            # Asegurar que tienen las mismas columnas que X_train
-            from src.preprocessing import get_features_and_target
-            X_ref, _ = get_features_and_target(df)
-            for col in X_ref.columns:
-                if col not in input_data.columns:
-                    input_data[col] = 0
-            input_data = input_data[X_ref.columns]
+        precio_pred = None
+        fuente      = None
+        modelo_usar = available_models[0] if available_models else None
 
-            precio_pred = modelo.predict(input_data)[0]
-            precio_m2   = precio_pred / size_sel
-            fuente      = f"Modelo: {modelo_usar}"
+        if modelo_usar:
+            from src.model_loader import build_input_for_model, load_mlp_artifacts
+            X_input, arts = build_input_for_model(modelo_usar, input_dict, df)
 
-        else:
-            # ── Estimacion estadistica (sin modelo) ────────────────────────
-            mask = (df["provincia"] == provincia_sel) & (df["property_type_group"] == tipo_sel)
-            subset = df[mask]
+            if X_input is not None:
+                modelo = load_model(modelo_usar)
+                try:
+                    if modelo_usar == "MLP" and arts is not None:
+                        y_sc        = modelo.predict(arts["scaler_X"].transform(X_input))
+                        y_log       = arts["scaler_y"].inverse_transform(y_sc.reshape(-1, 1)).ravel()
+                        precio_pred = float(np.expm1(y_log)[0])
+                    else:
+                        y_log       = modelo.predict(X_input)
+                        precio_pred = float(np.expm1(y_log)[0])
+                    fuente = f"Modelo: {modelo_usar}"
+                except Exception as e:
+                    st.warning(f"Error en predicción del modelo: {e}. Usando estimación estadística.")
 
-            if len(subset) < 5:
-                subset = df[df["provincia"] == provincia_sel]
-            if len(subset) < 5:
-                subset = df
+        if precio_pred is None:
+            mask        = (df["provincia"] == provincia_sel) & (df["property_type_group"] == tipo_sel)
+            subset_pred = df[mask] if len(df[mask]) >= 5 else df[df["provincia"] == provincia_sel]
+            subset_pred = subset_pred if len(subset_pred) >= 5 else df
+            precio_pred = float(subset_pred["price_per_m2"].median() * size_sel)
+            fuente      = "Estimación estadística (mediana)"
 
-            precio_m2_mediano = subset["price_per_m2"].median()
-            precio_pred       = precio_m2_mediano * size_sel
-            precio_m2         = precio_m2_mediano
-            fuente            = "Estimacion estadistica (mediana del dataset)"
-
-        # ── Resultado ─────────────────────────────────────────────────────
-        st.success("Estimacion calculada")
-
-        r1, r2, r3 = st.columns(3)
-        r1.metric("Precio estimado", f"{int(precio_pred):,} EUR".replace(",", "."))
-        r2.metric("Precio por m2", f"{int(precio_m2):,} EUR/m2".replace(",", "."))
-        r3.metric("Superficie", f"{size_sel} m2")
-
-        st.caption(f"Fuente: {fuente}")
-
-        # Contexto: comparar con la zona
+        precio_m2  = precio_pred / size_sel
         zona_stats = df[df["provincia"] == provincia_sel]["price"].describe()
         dept_name  = DEPT_NOMBRES.get(provincia_sel, provincia_sel)
 
+        st.success("Estimación calculada")
+        r1, r2, r3 = st.columns(3)
+        r1.metric("Precio estimado",  f"{int(precio_pred):,} €".replace(",", "."))
+        r2.metric("Precio por m²",    f"{int(precio_m2):,} €/m²".replace(",", "."))
+        r3.metric("Superficie",       f"{size_sel} m²")
+        st.caption(f"Fuente: {fuente}")
+
         st.markdown(f"**Contexto en {dept_name} (Dpto. {provincia_sel}):**")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Precio minimo zona", f"{int(zona_stats['min']):,} EUR".replace(",", "."))
-        c2.metric("Precio mediano zona", f"{int(zona_stats['50%']):,} EUR".replace(",", "."))
-        c3.metric("Precio medio zona", f"{int(zona_stats['mean']):,} EUR".replace(",", "."))
-        c4.metric("Precio maximo zona", f"{int(zona_stats['max']):,} EUR".replace(",", "."))
+        c1.metric("Precio mínimo zona",  f"{int(zona_stats['min']):,} €".replace(",", "."))
+        c2.metric("Precio mediano zona", f"{int(zona_stats['50%']):,} €".replace(",", "."))
+        c3.metric("Precio medio zona",   f"{int(zona_stats['mean']):,} €".replace(",", "."))
+        c4.metric("Precio máximo zona",  f"{int(zona_stats['max']):,} €".replace(",", "."))
 
-        # Gauge de posicion relativa
         pct = (precio_pred - zona_stats["min"]) / (zona_stats["max"] - zona_stats["min"]) * 100
         pct = max(0, min(100, pct))
-
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=pct,
-            title={"text": f"Posicion relativa en {dept_name}"},
+            title={"text": f"Posición relativa en {dept_name}"},
             gauge={
-                "axis": {"range": [0, 100], "ticksuffix": "%"},
-                "bar":  {"color": "#1a1a1a"},
+                "axis":  {"range": [0, 100], "ticksuffix": "%"},
+                "bar":   {"color": "#1a1a1a"},
                 "steps": [
-                    {"range": [0, 33],  "color": "#2ca02c"},
-                    {"range": [33, 66], "color": "#ff7f0e"},
-                    {"range": [66, 100],"color": "#d62728"},
+                    {"range": [0,  33],  "color": "#2ca02c"},
+                    {"range": [33, 66],  "color": "#ff7f0e"},
+                    {"range": [66, 100], "color": "#d62728"},
                 ],
-                "threshold": {"line": {"color": "#1a1a1a", "width": 4}, "value": pct},
             },
             number={"suffix": "%", "font": {"size": 28}},
         ))
         fig.update_layout(paper_bgcolor="#f5f0eb", height=300)
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("0% = precio minimo de la zona · 100% = precio maximo de la zona")
+        st.caption("0% = precio mínimo de la zona · 100% = precio máximo de la zona")
