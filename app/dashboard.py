@@ -13,7 +13,7 @@ from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATU
 
 # ── Configuración de página ────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Análisis del Precio de la Vivienda en Francia",
+    page_title="OuiPredict",
     page_icon="🏠",
     layout="wide",
 )
