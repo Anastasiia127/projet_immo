@@ -135,35 +135,6 @@ def build_input_for_model(model_name, input_dict, df_reference):
     dists["dist_min_ciudad"] = min(dists.values())
     log_size = np.log1p(input_dict["size"])
 
-    if model_name == "Regresión Lineal":
-        from src.preprocessing import get_features_and_target
-        X_ref, _ = get_features_and_target(df_reference)
-        row = {
-            "size":                  input_dict["size"],
-            "nb_rooms":              input_dict["nb_rooms"],
-            "nb_bedrooms":           input_dict["nb_bedrooms"],
-            "nb_bathrooms":          input_dict.get("nb_bathrooms", 0),
-            "nb_parking_places":     input_dict["nb_parking_places"],
-            "nb_boxes":              input_dict.get("nb_boxes", 0),
-            "nb_photos":             input_dict.get("nb_photos", 10),
-            "nb_terraces":           input_dict.get("nb_terraces", 0),
-            "energy_performance_value": {"A":50,"B":90,"C":150,"D":210,"E":280,"F":350,"G":450}.get(input_dict.get("energy_sel","D"), 210),
-            "ghg_value":             20,
-            "dist_capital_provincia": df_reference[df_reference["provincia"] == input_dict["dept"]]["dist_capital_provincia"].median(),
-            "anuncios_por_100k_hab": df_reference[df_reference["provincia"] == input_dict["dept"]]["anuncios_por_100k_hab"].median(),
-            "has_a_balcony":         input_dict.get("has_a_balcony", 0),
-            "has_a_cellar":          input_dict.get("has_a_cellar", 0),
-            "has_a_garage":          input_dict.get("has_a_garage", 0),
-            "has_air_conditioning":  input_dict.get("has_air_conditioning", 0),
-            "last_floor":            0,
-        }
-        X = pd.DataFrame([row])
-        for col in X_ref.columns:
-            if col not in X.columns:
-                X[col] = 0
-        X = X.reindex(columns=X_ref.columns, fill_value=0)
-        return X, None
-
     if model_name in ("Random Forest", "XGBoost"):
         depts_sorted = sorted(df_reference["provincia"].dropna().unique())
         dept_to_int  = {d: i for i, d in enumerate(depts_sorted)}
