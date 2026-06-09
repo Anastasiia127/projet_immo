@@ -1,0 +1,6 @@
+id_annonce,city,size_m2,nb_rooms,property_type,price_real,price_pred_linear,price_pred_random_forest,price_pred_mlp,diferencial_linear,diferencial_rf,diferencial_mlp,clasificacion
+35768437,aix-en-provence,109.0,4.0,maison,667000,,,,,,,
+35761091,paris-18eme,5034.0,3.0,appartement,535000,,,,,,,
+35791197,perpignan,105.0,3.0,appartement,249000,,,,,,,
+35765665,courbevoie,72.0,3.0,appartement,599000,,,,,,,
+29159161,le-barcares,4783.0,3.0,appartement,91000,,,,,,,
