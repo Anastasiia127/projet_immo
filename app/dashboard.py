@@ -64,8 +64,8 @@ def get_data():
 df = get_data()
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-st.markdown('<div class="main-title">🏠 Entre Tendencias y Anomalías</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Análisis del precio de la vivienda en Francia · UPV · 2026</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">🏠 OuiPredict</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Predicción del precio de propiedades inmobiliarias en Francia · UPV · 2026</div>', unsafe_allow_html=True)
 
 # ── Métricas globales ──────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
