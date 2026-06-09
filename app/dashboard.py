@@ -561,26 +561,6 @@ with tab3:
     available    = get_available_models()
     demo_mode    = len(available) == 0
 
-    if demo_mode:
-        st.info("⚠️ No se han encontrado modelos en `models/`. Mostrando datos de demostración.", icon="ℹ️")
-    else:
-        has_metrics = any(s["metrics"] for s in model_status.values())
-        if has_metrics:
-            st.success(f"✅ Modelos y métricas cargados: {', '.join(available)}")
-        else:
-            st.warning("✅ Modelos encontrados pero sin métricas CSV. Mostrando métricas de demo.", icon="⚠️")
-
-    st.markdown('<div class="section-title">Estado de los modelos</div>', unsafe_allow_html=True)
-    cols = st.columns(3)
-    for i, (name, status) in enumerate(model_status.items()):
-        with cols[i]:
-            if status["pkl"] and status["metrics"]:
-                st.metric(name, "✅ Completo")
-            elif status["pkl"]:
-                st.metric(name, "⚠️ Sin métricas")
-            else:
-                st.metric(name, "⏳ Pendiente")
-
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
