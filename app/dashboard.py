@@ -8,9 +8,8 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, get_all_predictions, get_demo_predictions, DEMO_METRICS
+from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, get_all_predictions, get_demo_predictions, DEMO_METRICS, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
-from src.model_loader import OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES
 
 # ── Configuración de página ────────────────────────────────────────────────────
 st.set_page_config(
