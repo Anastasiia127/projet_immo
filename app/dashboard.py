@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, get_all_predictions, get_demo_predictions, DEMO_METRICS, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES
+from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, get_all_predictions, get_demo_predictions, DEMO_METRICS, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES, build_input_for_model, load_mlp_artifacts
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
 
 # ── Configuración de página ────────────────────────────────────────────────────
@@ -561,10 +561,21 @@ with tab3:
     available    = get_available_models()
     demo_mode    = len(available) == 0
 
+    st.markdown('<div class="section-title">Estado de los modelos</div>', unsafe_allow_html=True)
+    cols = st.columns(4)
+    for i, (name, status) in enumerate(model_status.items()):
+        with cols[i]:
+            if status["pkl"] and status["metrics"]:
+                st.metric(name, "✅ Completo")
+            elif status["pkl"]:
+                st.metric(name, "⚠️ Sin métricas")
+            else:
+                st.metric(name, "⏳ Pendiente")
+
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
-    for name in ["MLP", "Random Forest", "XGBoost"]:
+    for name in ["Regresión Lineal", "MLP", "Random Forest", "XGBoost"]:
         m = get_metrics(name)
         metrics_data.append({
             "Modelo": name,
@@ -579,13 +590,13 @@ with tab3:
 
     r2_data = pd.DataFrame([
         {"Modelo": name, "R²": get_metrics(name)["R2"]}
-        for name in ["MLP", "Random Forest", "XGBoost"]
+        for name in ["Regresión Lineal", "MLP", "Random Forest", "XGBoost"]
     ])
     fig = px.bar(
         r2_data, x="Modelo", y="R²",
         title="R² por modelo (mayor es mejor · máximo = 1.0)",
         color="Modelo",
-        color_discrete_sequence=["#888", "#1a1a1a", "#555"],
+        color_discrete_sequence=["#aaa", "#888", "#1a1a1a", "#555"],
         text="R²",
     )
     fig.update_traces(texttemplate="%{text:.2f}")
@@ -599,7 +610,7 @@ with tab3:
 
     st.markdown('<div class="section-title">Predicción vs Realidad</div>', unsafe_allow_html=True)
 
-    model_sel = st.selectbox("Selecciona modelo", ["MLP", "Random Forest", "XGBoost"])
+    model_sel = st.selectbox("Selecciona modelo", ["Regresión Lineal", "MLP", "Random Forest", "XGBoost"])
     subset = get_predictions(model_sel)
     is_real = (OUTPUTS_PATH / PREDICTIONS_FILES[model_sel]).exists()
 
@@ -716,6 +727,12 @@ with tab5:
 
     st.markdown("Introduce las caracteristicas de la vivienda para obtener una estimacion del precio.")
 
+    modelo_elegido = st.selectbox(
+        "Modelo a usar para la predicción",
+        options=available_models + ["Estimación estadística"],
+        index=0 if available_models else 0,
+    )
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -778,10 +795,9 @@ with tab5:
 
         precio_pred = None
         fuente      = None
-        modelo_usar = available_models[0] if available_models else None
+        modelo_usar = modelo_elegido if modelo_elegido != "Estimación estadística" else None
 
         if modelo_usar:
-            from src.model_loader import build_input_for_model, load_mlp_artifacts
             X_input, arts = build_input_for_model(modelo_usar, input_dict, df)
 
             if X_input is not None:
@@ -791,6 +807,8 @@ with tab5:
                         y_sc        = modelo.predict(arts["scaler_X"].transform(X_input))
                         y_log       = arts["scaler_y"].inverse_transform(y_sc.reshape(-1, 1)).ravel()
                         precio_pred = float(np.expm1(y_log)[0])
+                    elif modelo_usar == "Regresión Lineal":
+                        precio_pred = float(modelo.predict(X_input)[0])
                     else:
                         y_log       = modelo.predict(X_input)
                         precio_pred = float(np.expm1(y_log)[0])
