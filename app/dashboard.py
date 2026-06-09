@@ -575,7 +575,7 @@ with tab3:
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
-    for name in ["Regresión Lineal", "MLP", "Random Forest", "XGBoost"]:
+    for name in ["MLP", "Random Forest", "XGBoost"]:
         m = get_metrics(name)
         metrics_data.append({
             "Modelo": name,
@@ -590,7 +590,7 @@ with tab3:
 
     r2_data = pd.DataFrame([
         {"Modelo": name, "R²": get_metrics(name)["R2"]}
-        for name in ["Regresión Lineal", "MLP", "Random Forest", "XGBoost"]
+        for name in ["MLP", "Random Forest", "XGBoost"]
     ])
     fig = px.bar(
         r2_data, x="Modelo", y="R²",
@@ -610,7 +610,7 @@ with tab3:
 
     st.markdown('<div class="section-title">Predicción vs Realidad</div>', unsafe_allow_html=True)
 
-    model_sel = st.selectbox("Selecciona modelo", ["Regresión Lineal", "MLP", "Random Forest", "XGBoost"])
+    model_sel = st.selectbox("Selecciona modelo", ["MLP", "Random Forest", "XGBoost"])
     subset = get_predictions(model_sel)
     is_real = (OUTPUTS_PATH / PREDICTIONS_FILES[model_sel]).exists()
 
@@ -807,8 +807,6 @@ with tab5:
                         y_sc        = modelo.predict(arts["scaler_X"].transform(X_input))
                         y_log       = arts["scaler_y"].inverse_transform(y_sc.reshape(-1, 1)).ravel()
                         precio_pred = float(np.expm1(y_log)[0])
-                    elif modelo_usar == "Regresión Lineal":
-                        precio_pred = float(modelo.predict(X_input)[0])
                     else:
                         y_log       = modelo.predict(X_input)
                         precio_pred = float(np.expm1(y_log)[0])
