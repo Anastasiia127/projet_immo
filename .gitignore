@@ -13,7 +13,6 @@ env/
 *.ipynb
 
 # Modelos entrenados (archivos pesados — los comparten por separado)
-models/*.pkl
 models/*.joblib
 
 # IDE
