@@ -7,31 +7,27 @@ MODELS_PATH  = Path(__file__).resolve().parent.parent / "models"
 OUTPUTS_PATH = Path(__file__).resolve().parent.parent / "outputs"
 
 MODEL_FILES = {
-    "Regresión Lineal": "linear_regression.pkl",
-    "MLP":              "mlp.pkl",
-    "Random Forest":    "random_forest.pkl",
-    "XGBoost":          "xgboost.pkl",
+    "MLP":           "mlp.pkl",
+    "Random Forest": "random_forest.pkl",
+    "XGBoost":       "xgboost.pkl",
 }
 
 METRICS_FILES = {
-    "Regresión Lineal": "metrics_linear.csv",
-    "MLP":              "metrics_mlp.csv",
-    "Random Forest":    "metrics_rf.csv",
-    "XGBoost":          "metrics_xgb.csv",
+    "MLP":           "metrics_mlp.csv",
+    "Random Forest": "metrics_rf.csv",
+    "XGBoost":       "metrics_xgb.csv",
 }
 
 PREDICTIONS_FILES = {
-    "Regresión Lineal": "predictions_linear.csv",
-    "MLP":              "predictions_mlp.csv",
-    "Random Forest":    "predictions_rf.csv",
-    "XGBoost":          "predictions_xgb.csv",
+    "MLP":           "predictions_mlp.csv",
+    "Random Forest": "predictions_rf.csv",
+    "XGBoost":       "predictions_xgb.csv",
 }
 
 DEMO_METRICS = {
-    "Regresión Lineal": {"RMSE": 110000, "MAE": 78000, "R2": 0.52},
-    "MLP":              {"RMSE": 95000,  "MAE": 68000, "R2": 0.61},
-    "Random Forest":    {"RMSE": 72000,  "MAE": 48000, "R2": 0.78},
-    "XGBoost":          {"RMSE": 78000,  "MAE": 53000, "R2": 0.74},
+    "MLP":           {"RMSE": 95000, "MAE": 68000, "R2": 0.61},
+    "Random Forest": {"RMSE": 72000, "MAE": 48000, "R2": 0.78},
+    "XGBoost":       {"RMSE": 78000, "MAE": 53000, "R2": 0.74},
 }
 
 
