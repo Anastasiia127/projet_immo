@@ -435,7 +435,6 @@ with tab1:
             color_discrete_map={"< 30 (escaso)": "#f59e0b", ">= 30": "#0d9488"},
             title="Número de anuncios por departamento",
             labels={"listings": "Nº anuncios", "nombre": "Departamento", "sparse": ""},
-            showlegend=False,
             text="listings",
         )
         fig.update_traces(texttemplate="%{text}", textposition="outside")
