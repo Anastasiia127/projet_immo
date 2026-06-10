@@ -109,9 +109,8 @@ st.divider()
 
 with st.expander("❓ ¿Cómo usar OuiPredict?"):
     st.markdown("""
-    ### Guía rápida
-
-    **🏠 Predecir precio** *(primera pestaña)*
+    
+    **🏠 Predecir precio** 
     1. Elige el **modelo** — XGBoost es el más preciso (R²=81%), pero todos son válidos
     2. Selecciona el **departamento** donde quieres comprar — los más populares están arriba con iconos
     3. Elige el **tipo de propiedad** (apartamento, casa, terreno...)
@@ -749,72 +748,93 @@ with tab4:
     st.markdown('<div class="section-title">Análisis de anomalías por zona</div>', unsafe_allow_html=True)
 
     st.info(
-        "Esta sección clasifica cada zona como **tendencial** o **atípica** "
-        "según si el diferencial entre precio real y predicho supera el intervalo de confianza del 95%.",
+        "Esta sección clasifica cada departamento como **tendencial** o **atípico** "
+        "según si el diferencial entre precio real y predicho por XGBoost supera el intervalo de confianza del 95%.",
         icon="ℹ️"
     )
 
-    city_stats = (
-        df.groupby("city")
-        .agg(
-            precio_real_mediano=(TARGET, "median"),
-            precio_m2_mediano=("price_per_m2", "median"),
-            n_viviendas=(TARGET, "count"),
+    # Cargar predicciones reales de XGBoost (con dept)
+    pred_path = OUTPUTS_PATH / "predictions_xgb.csv"
+    if pred_path.exists() and "dept" in pd.read_csv(pred_path, nrows=1).columns:
+        preds_df = pd.read_csv(pred_path)
+        # Agrupar por departamento
+        dept_stats = (
+            preds_df.groupby("dept")
+            .agg(
+                precio_real_mediano=("y_real", "median"),
+                precio_predicho_mediano=("y_pred", "median"),
+                n_viviendas=("y_real", "count"),
+            )
+            .reset_index()
         )
-        .reset_index()
-    )
+        dept_stats["dept"] = dept_stats["dept"].astype(str).str.zfill(2)
+        dept_stats["nombre"] = dept_stats["dept"].map(DEPT_NOMBRES).fillna(dept_stats["dept"])
+        dept_stats["diferencial"] = dept_stats["precio_real_mediano"] - dept_stats["precio_predicho_mediano"]
+        dept_stats["diferencial_pct"] = (dept_stats["diferencial"] / dept_stats["precio_predicho_mediano"] * 100).round(1)
+        is_real = True
+    else:
+        # Fallback: simulado por ciudad
+        dept_stats_raw = (
+            df.groupby("provincia")
+            .agg(
+                precio_real_mediano=(TARGET, "median"),
+                n_viviendas=(TARGET, "count"),
+            )
+            .reset_index()
+            .rename(columns={"provincia": "dept"})
+        )
+        rng = np.random.default_rng(42)
+        noise = rng.normal(0, 0.12, size=len(dept_stats_raw))
+        dept_stats_raw["precio_predicho_mediano"] = dept_stats_raw["precio_real_mediano"] * (1 + noise)
+        dept_stats_raw["diferencial"] = dept_stats_raw["precio_real_mediano"] - dept_stats_raw["precio_predicho_mediano"]
+        dept_stats_raw["diferencial_pct"] = (dept_stats_raw["diferencial"] / dept_stats_raw["precio_predicho_mediano"] * 100).round(1)
+        dept_stats_raw["nombre"] = dept_stats_raw["dept"].map(DEPT_NOMBRES).fillna(dept_stats_raw["dept"])
+        dept_stats = dept_stats_raw
+        is_real = False
 
-    rng = np.random.default_rng(42)
-    noise = rng.normal(0, 0.12, size=len(city_stats))
-    city_stats["precio_predicho_mediano"] = city_stats["precio_real_mediano"] * (1 + noise)
-    city_stats["diferencial"] = city_stats["precio_real_mediano"] - city_stats["precio_predicho_mediano"]
-    city_stats["diferencial_pct"] = (city_stats["diferencial"] / city_stats["precio_predicho_mediano"] * 100).round(1)
-
-    mean_diff = city_stats["diferencial_pct"].mean()
-    std_diff  = city_stats["diferencial_pct"].std()
+    mean_diff = dept_stats["diferencial_pct"].mean()
+    std_diff  = dept_stats["diferencial_pct"].std()
     umbral    = 1.96 * std_diff
 
-    city_stats["clasificacion"] = city_stats["diferencial_pct"].apply(
-        lambda x: "Atípica" if abs(x - mean_diff) > umbral else "Tendencial"
+    dept_stats["clasificacion"] = dept_stats["diferencial_pct"].apply(
+        lambda x: "Atípico" if abs(x - mean_diff) > umbral else "Tendencial"
     )
 
-    n_atipicas     = (city_stats["clasificacion"] == "Atípica").sum()
-    n_tendenciales = (city_stats["clasificacion"] == "Tendencial").sum()
+    n_atipicos     = (dept_stats["clasificacion"] == "Atípico").sum()
+    n_tendenciales = (dept_stats["clasificacion"] == "Tendencial").sum()
+
+    if not is_real:
+        st.caption("*Predicciones simuladas — se actualizarán cuando se suban los datos reales.*")
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Zonas analizadas", len(city_stats))
-    col2.metric("Zonas tendenciales", n_tendenciales)
-    col3.metric("Zonas atípicas", f"⚠️ {n_atipicas}")
+    col1.metric("Departamentos analizados", len(dept_stats))
+    col2.metric("Tendenciales", n_tendenciales)
+    col3.metric("Atípicos", f"⚠️ {n_atipicos}")
 
-    st.markdown('<div class="section-title">Diferencial por zona (%)</div>', unsafe_allow_html=True)
-
-    top_n = st.slider("Mostrar top N ciudades por número de viviendas", 10, 80, 30)
-    top_cities_data = city_stats.nlargest(top_n, "n_viviendas")
+    st.markdown('<div class="section-title">Diferencial por departamento (%)</div>', unsafe_allow_html=True)
 
     fig = px.bar(
-        top_cities_data.sort_values("diferencial_pct"),
-        x="diferencial_pct", y="city",
+        dept_stats.sort_values("diferencial_pct"),
+        x="diferencial_pct", y="nombre",
         color="clasificacion",
-        color_discrete_map={"Tendencial": "#0d9488", "Atípica": "#e74c3c"},
+        color_discrete_map={"Tendencial": "#0d9488", "Atípico": "#e74c3c"},
         orientation="h",
-        title=f"Diferencial precio real vs predicho — Top {top_n} ciudades",
-        labels={"diferencial_pct": "Diferencial (%)", "city": "Ciudad", "clasificacion": "Clasificación"},
+        title=f"Diferencial precio real vs predicho (XGBoost) — por departamento",
+        labels={"diferencial_pct": "Diferencial (%)", "nombre": "Departamento", "clasificacion": "Clasificación"},
+        hover_data={"n_viviendas": True, "precio_real_mediano": ":,.0f", "precio_predicho_mediano": ":,.0f"},
     )
     fig.add_vline(x=mean_diff + umbral, line_dash="dash", line_color="#818cf8", annotation_text="IC 95%+")
     fig.add_vline(x=mean_diff - umbral, line_dash="dash", line_color="#818cf8", annotation_text="IC 95%-")
-    fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=600)
+    fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=700)
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown('<div class="section-title">Zonas atípicas detectadas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Departamentos atípicos detectados</div>', unsafe_allow_html=True)
 
-    atipicas = city_stats[city_stats["clasificacion"] == "Atípica"].sort_values(
+    atipicos = dept_stats[dept_stats["clasificacion"] == "Atípico"].sort_values(
         "diferencial_pct", key=abs, ascending=False
-    )[["city", "precio_real_mediano", "precio_predicho_mediano", "diferencial_pct", "n_viviendas"]]
-    atipicas.columns = ["Ciudad", "Precio real mediano (€)", "Precio predicho mediano (€)", "Diferencial (%)", "N viviendas"]
-    st.dataframe(atipicas, use_container_width=True, hide_index=True)
-
-
-
+    )[["nombre", "precio_real_mediano", "precio_predicho_mediano", "diferencial_pct", "n_viviendas"]]
+    atipicos.columns = ["Departamento", "Precio real mediano (€)", "Precio predicho (XGBoost) (€)", "Diferencial (%)", "N viviendas"]
+    st.dataframe(atipicos, use_container_width=True, hide_index=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 5 · PREDICTOR DE PRECIO
