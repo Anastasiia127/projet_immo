@@ -107,6 +107,44 @@ with c4:
 
 st.divider()
 
+with st.expander("❓ ¿Cómo usar OuiPredict?"):
+    st.markdown("""
+    ### Guía rápida
+
+    **🏠 Predecir precio** *(primera pestaña)*
+    1. Elige el **modelo** — XGBoost es el más preciso (R²=81%), pero todos son válidos
+    2. Selecciona el **departamento** donde quieres comprar — los más populares están arriba con iconos
+    3. Elige el **tipo de propiedad** (apartamento, casa, terreno...)
+    4. Rellena la **superficie** y las características físicas
+    5. Marca los **extras** que necesitas (balcón, garaje, A/C...)
+    6. Pulsa **"Calcular precio estimado"**
+    7. Obtendrás el precio estimado, el contexto de mercado con viviendas similares, y un gauge que te dice si es barato o caro para la zona
+
+    ---
+
+    **📊 Exploración de datos**
+    - Usa el **filtro de tipo** para ver solo apartamentos o solo casas
+    - Los mapas son interactivos — haz zoom y pasa el ratón para ver detalles
+    - Los gráficos técnicos (correlación, varianza...) están plegados al final
+
+    ---
+
+    **🤖 Modelos**
+    - Compara la precisión de los tres modelos entrenados
+    - El gráfico "Predicción vs Realidad" muestra qué tan bien predice cada modelo — cuanto más cerca de la línea roja, mejor
+
+    ---
+
+    **🔍 Anomalías por zona**
+    - Las zonas en **rojo** tienen precios significativamente distintos de lo esperado — pueden estar sobrevaloradas o infravaloradas
+    - Usa el slider para ver más o menos ciudades
+
+    ---
+
+    **⚙️ Preprocesamiento**
+    - Documentación técnica del pipeline de datos — útil si quieres entender cómo se prepararon los datos para el modelo
+    """)
+
 
 # Nombres de los departamentos franceses
 DEPT_NOMBRES = {
