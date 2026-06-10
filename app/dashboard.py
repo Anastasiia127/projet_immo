@@ -781,11 +781,41 @@ with tab5:
 
     st.markdown("Introduce las caracteristicas de la vivienda para obtener una estimacion del precio.")
 
+    # Descripciones y métricas de modelos
+    MODEL_DESCRIPTIONS = {
+        "XGBoost":       ("XGBoost — árboles de decisión encadenados",        "Combina cientos de árboles simples aprendiendo de sus errores. Muy preciso con datos tabulares."),
+        "Random Forest": ("Random Forest — bosque de árboles independientes",  "Entrena muchos árboles en paralelo y promedia sus predicciones. Robusto y estable."),
+        "MLP":           ("MLP — red neuronal multicapa",                       "Red neuronal artificial que aprende patrones complejos. Flexible pero requiere más datos."),
+        "Estimación estadística": ("Estimación estadística — mediana del mercado", "Sin IA: usa la mediana de precios de viviendas similares en la zona. Referencia básica."),
+    }
+
+    # Ordenar por R² (mejor primero)
+    def get_r2(name):
+        if name == "Estimación estadística":
+            return -1
+        return get_metrics(name).get("R2", 0)
+
+    sorted_models = sorted(available_models, key=get_r2, reverse=True)
+    all_options = sorted_models + ["Estimación estadística"]
+
+    def format_model(name):
+        if name == "Estimación estadística":
+            return "📊 Estimación estadística (sin IA)"
+        r2 = get_metrics(name).get("R2", 0)
+        icons = {"XGBoost": "🥇", "Random Forest": "🥈", "MLP": "🥉"}
+        return f"{icons.get(name, '🤖')} {name} — precisión {r2:.0%}"
+
     modelo_elegido = st.selectbox(
-        "Modelo a usar para la predicción",
-        options=available_models + ["Estimación estadística"],
-        index=0 if available_models else 0,
+        "Modelo de predicción",
+        options=all_options,
+        format_func=format_model,
+        index=0,
     )
+
+    # Mostrar descripción del modelo seleccionado
+    if modelo_elegido in MODEL_DESCRIPTIONS:
+        title, desc = MODEL_DESCRIPTIONS[modelo_elegido]
+        st.caption(f"ℹ️ **{title}** — {desc}")
 
     col1, col2, col3 = st.columns(3)
 
@@ -795,9 +825,11 @@ with tab5:
         PRIORITY_DEPTS = ["75", "69", "13", "33", "06"]  # París, Lyon, Marsella, Burdeos, Niza
         all_depts = sorted(df["provincia"].dropna().unique().tolist())
         other_depts = [p for p in all_depts if p not in PRIORITY_DEPTS]
-        provincia_options = [p for p in PRIORITY_DEPTS if p in all_depts] + other_depts
+        provincia_options = ["ALL"] + [p for p in PRIORITY_DEPTS if p in all_depts] + other_depts
         
         def format_dept(x):
+            if x == "ALL":
+                return "🇫🇷 Toda Francia"
             name = DEPT_NOMBRES.get(x, x)
             if x in PRIORITY_DEPTS:
                 icons = {"75": "🗼", "69": "🦁", "13": "⛵", "33": "🍷", "06": "🌊"}
@@ -812,18 +844,25 @@ with tab5:
         tipo_sel = st.selectbox(
             "Tipo de propiedad",
             options=["apartamento", "casa", "terreno", "local_comercial", "otro"],
+            format_func=lambda x: {
+                "apartamento": "🏢 Apartamento (piso, dúplex, loft...)",
+                "casa": "🏘️ Casa (maison, villa, chalet...)",
+                "terreno": "🌿 Terreno",
+                "local_comercial": "🏪 Local comercial / Parking",
+                "otro": "📦 Otro (viager, propriété mixta...)",
+            }.get(x, x),
         )
 
     with col2:
         st.markdown("**Características físicas**")
         size_sel = st.number_input("Superficie (m²)", min_value=10, max_value=1000, value=80, step=5)
         
-        # Ocultar habitaciones para terreno/local
-        if tipo_sel in ["terreno", "local_comercial"]:
+        # Ocultar habitaciones para terreno/local/otro
+        if tipo_sel in ["terreno", "local_comercial", "otro"]:
             rooms_sel     = 0
             bedrooms_sel  = 0
             bathrooms_sel = 0
-            st.info("Para terrenos y locales no aplican habitaciones ni baños.")
+            st.info("Para este tipo de propiedad no aplican habitaciones ni baños.")
         else:
             rooms_sel     = st.number_input("Nº total de piezas (habitaciones + salón)", min_value=1, max_value=20, value=3,
                                             help="Cuenta todas las piezas habitables: salón, dormitorios, etc.")
@@ -864,8 +903,13 @@ with tab5:
     if st.button("Calcular precio estimado", type="primary", use_container_width=True):
 
         dept       = provincia_sel
-        dept_lat   = df[df["provincia"] == dept]["approximate_latitude"].median()
-        dept_lon   = df[df["provincia"] == dept]["approximate_longitude"].median()
+        if dept == "ALL":
+            dept_lat = df["approximate_latitude"].median()
+            dept_lon = df["approximate_longitude"].median()
+            dept     = df["provincia"].mode()[0]  # usar departamento más común para el modelo
+        else:
+            dept_lat = df[df["provincia"] == dept]["approximate_latitude"].median()
+            dept_lon = df[df["provincia"] == dept]["approximate_longitude"].median()
         tipo_to_group = {"apartamento": "appartement", "casa": "maison", "lujo": "lujo"}
         property_group = tipo_to_group.get(tipo_sel, "appartement")
 
@@ -916,25 +960,24 @@ with tab5:
             fuente      = "Estimación estadística (mediana)"
 
         precio_m2  = precio_pred / size_sel
-        dept_name  = DEPT_NOMBRES.get(provincia_sel, provincia_sel)
+        dept_name  = "Toda Francia" if provincia_sel == "ALL" else DEPT_NOMBRES.get(provincia_sel, provincia_sel)
 
-        # Filtrar viviendas similares: mismo tipo, mismo departamento, superficie ±30%
+        # Filtrar viviendas similares: mismo tipo, mismo departamento, superficie ±20%
         size_min = size_sel * 0.8
         size_max = size_sel * 1.2
+
+        dept_filter = (df["provincia"] == provincia_sel) if provincia_sel != "ALL" else pd.Series([True] * len(df), index=df.index)
+
         similares = df[
-            (df["provincia"] == provincia_sel) &
+            dept_filter &
             (df["property_type_group"] == tipo_sel) &
             (df["size"] >= size_min) &
             (df["size"] <= size_max)
         ]
-        # Fallback si hay pocas
         if len(similares) < 5:
-            similares = df[
-                (df["provincia"] == provincia_sel) &
-                (df["property_type_group"] == tipo_sel)
-            ]
+            similares = df[dept_filter & (df["property_type_group"] == tipo_sel)]
         if len(similares) < 5:
-            similares = df[df["provincia"] == provincia_sel]
+            similares = df[dept_filter]
 
         zona_stats = similares["price"].describe()
         n_similares = len(similares)
