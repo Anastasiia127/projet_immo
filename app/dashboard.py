@@ -488,7 +488,7 @@ with tab1:
                         results.append({"Variable": col, "Tipo": "categorica", "Eta2": round(r2, 4)})
                 except Exception:
                     continue
-        VAR_NAMES = {
+            VAR_NAMES = {
             "nb_rooms": "Nº habitaciones", "nb_bathrooms": "Nº baños",
             "nb_bedrooms": "Nº dormitorios", "nb_parking_places": "Plazas parking",
             "nb_boxes": "Nº trasteros", "nb_photos": "Nº fotos",
@@ -504,9 +504,9 @@ with tab1:
             "ghg_category": "Categoría GHG", "floor": "Planta",
             "price_per_m2": "Precio/m²", "city": "Ciudad",
         }
-        df_result = pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
-        df_result["Variable"] = df_result["Variable"].map(lambda x: VAR_NAMES.get(x, x))
-        return df_result
+            df_result = pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
+            df_result["Variable"] = df_result["Variable"].map(lambda x: VAR_NAMES.get(x, x))
+            return df_result
 
     var_df = compute_variance_explained(df)
     var_df["Efecto"] = var_df["Eta2"].apply(
