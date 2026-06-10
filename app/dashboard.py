@@ -133,7 +133,16 @@ with tab1:
         default=["apartamento", "casa"],
     )
     df_filtrado = df[df["property_type_group"].isin(tipos_sel)] if tipos_sel else df
-    st.caption(f"Mostrando {len(df_filtrado):,} viviendas".replace(",", "."))
+    
+    # Contador por tipo
+    if tipos_sel:
+        counts = df_filtrado.groupby("property_type_group").size()
+        tipo_icons = {"apartamento": "🏢", "casa": "🏘️", "terreno": "🌿", "local_comercial": "🏪", "otro": "📦"}
+        parts = [f"{tipo_icons.get(t, '📍')} **{counts.get(t, 0):,}** {t}".replace(",", ".") for t in tipos_sel if t in counts]
+        total = len(df_filtrado)
+        st.markdown(f"**{total:,}** viviendas seleccionadas: {' · '.join(parts)}".replace(",", "."))
+    else:
+        st.markdown(f"**{len(df_filtrado):,}** viviendas (todos los tipos)".replace(",", "."))
 
     with st.expander("ℹ️ ¿Qué incluye cada grupo?"):
         st.markdown("""
@@ -242,9 +251,9 @@ with tab1:
             df_filtrado, x=TARGET, nbins=80,
             title="Distribución del precio (€)",
             labels={TARGET: "Precio (€)"},
-            color_discrete_sequence=["#1a1a1a"],
+            color_discrete_sequence=["#3b82f6"],
         )
-        fig.update_layout(bargap=0.05, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+        fig.update_layout(bargap=0.05, plot_bgcolor="#f8faff", paper_bgcolor="#f8faff")
         st.plotly_chart(fig, use_container_width=True)
         st.caption("📊 Cada barra representa un rango de precios. El pico más alto indica el precio más frecuente. La cola larga a la derecha revela la presencia de viviendas muy caras (outliers).")
 
@@ -253,9 +262,9 @@ with tab1:
             df_filtrado, x="property_type_group", y=TARGET,
             title="Precio por tipo de propiedad",
             labels={TARGET: "Precio (€)", "property_type_group": "Tipo"},
-            color_discrete_sequence=["#1a1a1a"],
+            color_discrete_sequence=["#8b5cf6"],
         )
-        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#fdf8ff", paper_bgcolor="#fdf8ff")
         st.plotly_chart(fig, use_container_width=True)
         st.caption("📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
 
@@ -280,7 +289,7 @@ with tab1:
         title="Precio mediano por ciudad — Top 20 (mín. 5 viviendas)",
         labels={"precio_mediano": "Precio mediano (€)", "ciudad_provincia": "Ciudad"},
         color="precio_mediano",
-        color_continuous_scale=["#e8e0d5", "#1a1a1a"],
+        color_continuous_scale=["#fde68a", "#dc2626"],
         hover_data={"n": True, "provincia": True, "ciudad_provincia": False},
     )
     fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-35)
@@ -710,7 +719,7 @@ with tab4:
     atipicas.columns = ["Ciudad", "Precio real mediano (€)", "Precio predicho mediano (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicas, use_container_width=True, hide_index=True)
 
-    st.caption("*Los precios predichos son simulados hasta que se añadan los modelos entrenados.*")
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -737,12 +746,23 @@ with tab5:
 
     with col1:
         st.markdown("**Ubicacion**")
-        provincia_options = sorted(df["provincia"].dropna().unique().tolist())
-        provincia_nombres = {p: DEPT_NOMBRES.get(p, p) for p in provincia_options}
+        # Ciudades importantes primero
+        PRIORITY_DEPTS = ["75", "69", "13", "33", "06"]  # París, Lyon, Marsella, Burdeos, Niza
+        all_depts = sorted(df["provincia"].dropna().unique().tolist())
+        other_depts = [p for p in all_depts if p not in PRIORITY_DEPTS]
+        provincia_options = [p for p in PRIORITY_DEPTS if p in all_depts] + other_depts
+        
+        def format_dept(x):
+            name = DEPT_NOMBRES.get(x, x)
+            if x in PRIORITY_DEPTS:
+                icons = {"75": "🗼", "69": "🦁", "13": "⛵", "33": "🍷", "06": "🌊"}
+                return f"{icons.get(x, '⭐')} {name} ({x})"
+            return f"{name} ({x})"
+        
         provincia_sel = st.selectbox(
-            "Departamento",
+            "Departamento (código = nº del departamento francés)",
             options=provincia_options,
-            format_func=lambda x: f"{DEPT_NOMBRES.get(x, x)} ({x})",
+            format_func=format_dept,
         )
         tipo_sel = st.selectbox(
             "Tipo de propiedad",
@@ -859,3 +879,23 @@ with tab5:
         fig.update_layout(paper_bgcolor="#f5f0eb", height=300)
         st.plotly_chart(fig, use_container_width=True)
         st.caption("0% = precio mínimo de la zona · 100% = precio máximo de la zona")
+
+        # Mini mapa con la ubicación seleccionada
+        st.markdown(f"**📍 Ubicación: {dept_name}**")
+        dept_df = pd.DataFrame([{"lat": dept_lat, "lon": dept_lon, "name": dept_name}])
+        fig_map = px.scatter_mapbox(
+            dept_df, lat="lat", lon="lon",
+            hover_name="name",
+            zoom=6,
+            center={"lat": dept_lat, "lon": dept_lon},
+            mapbox_style="carto-positron",
+            height=300,
+            size_max=20,
+            color_discrete_sequence=["#e74c3c"],
+        )
+        fig_map.update_traces(marker=dict(size=15))
+        fig_map.update_layout(
+            paper_bgcolor="#f5f0eb",
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        )
+        st.plotly_chart(fig_map, use_container_width=True)
