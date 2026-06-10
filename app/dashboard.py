@@ -565,7 +565,7 @@ with tab2:
         fig = px.pie(
             values=[80, 20],
             names=["Entrenamiento (80%)", "Validación (20%)"],
-            color_discrete_sequence=["#1a1a1a", "#e8e0d5"],
+            color_discrete_sequence=["#0d9488", "#e8e0d5"],
             title="Split Train / Test",
         )
         fig.update_layout(paper_bgcolor="white")
@@ -579,6 +579,14 @@ with tab2:
         st.markdown(f"- `test_size = 0.2`")
         st.markdown(f"- Filas entrenamiento: **{n_train:,}**".replace(",", "."))
         st.markdown(f"- Filas validación: **{n_test:,}**".replace(",", "."))
+
+    st.info(
+        "**Random Forest** utiliza adicionalmente **validación cruzada de 10 folds** (10-fold cross-validation) "
+        "sobre el conjunto de entrenamiento para obtener una estimación más robusta del R². "
+        "El conjunto de test (20%) se reserva y no se toca hasta la evaluación final, "
+        "evitando así cualquier fuga de datos (*data leakage*).",
+        icon="ℹ️"
+    )
 
     st.markdown('<div class="section-title">Pipeline de preprocesamiento</div>', unsafe_allow_html=True)
 
@@ -600,6 +608,9 @@ with tab2:
             │
             ▼
     train_test_split()   ← 80% train / 20% test
+            │
+            ▼
+    cross_val_score()    ← 10-fold CV sobre train (Random Forest)
             │
             ▼
         Modelo
