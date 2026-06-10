@@ -21,19 +21,22 @@ st.set_page_config(
 # ── Estilos ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+    * { font-size: 1.02em; }
+    .stMarkdown p { font-size: 1.05rem; }
+    .stCaption { font-size: 0.95rem; }
     .main-title {
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: 800;
         letter-spacing: -1px;
         margin-bottom: 0px;
     }
     .subtitle {
-        font-size: 0.95rem;
+        font-size: 1.05rem;
         color: #666;
         margin-bottom: 2rem;
     }
     .section-title {
-        font-size: 1.2rem;
+        font-size: 1.35rem;
         font-weight: 700;
         border-left: 4px solid #0d9488;
         padding-left: 0.6rem;
@@ -65,7 +68,31 @@ df = get_data()
 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.markdown('<div class="main-title">🏠 OuiPredict</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Predicción del precio de propiedades inmobiliarias en Francia · UPV · 2026</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Tu guía inteligente para comprar vivienda en Francia · UPV · 2026</div>', unsafe_allow_html=True)
+
+# ── Landing hero ───────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="background: linear-gradient(135deg, #f0fdfc 0%, #e0f2fe 100%); border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 1rem;">
+    <p style="font-size: 1.15rem; color: #1e293b; margin-bottom: 1rem;">
+        Introduce las características de la vivienda que buscas y te diremos si el precio es justo, 
+        cómo se compara con la zona y qué esperar del mercado.
+    </p>
+    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">🎯</span>
+            <div><strong>Predice el precio justo</strong><br><small>Modelos entrenados con 37.000+ viviendas reales</small></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">📍</span>
+            <div><strong>Analiza la zona</strong><br><small>Precios medianos, mínimos y máximos por departamento</small></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">📊</span>
+            <div><strong>Compara con el mercado</strong><br><small>Ve dónde se sitúa tu vivienda respecto a la competencia</small></div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Métricas globales ──────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
@@ -111,12 +138,12 @@ DEPT_NOMBRES = {
 }
 
 # ── Pestañas ───────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab5, tab1, tab3, tab4, tab2 = st.tabs([
+    "🏠 Predecir precio",
     "📊 Exploración de datos",
-    "⚙️ Preprocesamiento",
     "🤖 Modelos",
     "🔍 Anomalías por zona",
-    "🏠 Predecir precio",
+    "⚙️ Preprocesamiento",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -266,7 +293,7 @@ with tab1:
         )
         fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="white", paper_bgcolor="white")
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
+        st.caption("🖱️ *Pasa el ratón sobre el gráfico para ver estadísticas detalladas.* · 📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
 
     # ── Top ciudades ──────────────────────────────────────────────────────────
     st.markdown('<div class="section-title">Precio por ciudad (top 20)</div>', unsafe_allow_html=True)
@@ -408,6 +435,7 @@ with tab1:
             color_discrete_map={"< 30 (escaso)": "#f59e0b", ">= 30": "#0d9488"},
             title="Número de anuncios por departamento",
             labels={"listings": "Nº anuncios", "nombre": "Departamento", "sparse": ""},
+            showlegend=False,
             text="listings",
         )
         fig.update_traces(texttemplate="%{text}", textposition="outside")
@@ -460,7 +488,25 @@ with tab1:
                         results.append({"Variable": col, "Tipo": "categorica", "Eta2": round(r2, 4)})
                 except Exception:
                     continue
-            return pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
+            VAR_NAMES = {
+            "nb_rooms": "Nº habitaciones", "nb_bathrooms": "Nº baños",
+            "nb_bedrooms": "Nº dormitorios", "nb_parking_places": "Plazas parking",
+            "nb_boxes": "Nº trasteros", "nb_photos": "Nº fotos",
+            "nb_terraces": "Nº terrazas", "size": "Superficie (m²)",
+            "energy_performance_value": "Valor energético",
+            "ghg_value": "Valor GHG", "dist_capital_provincia": "Dist. capital dpto.",
+            "anuncios_por_100k_hab": "Anuncios/100k hab.",
+            "has_a_balcony": "Tiene balcón", "has_a_cellar": "Tiene sótano",
+            "has_a_garage": "Tiene garaje", "has_air_conditioning": "Aire acond.",
+            "last_floor": "Última planta", "property_type_group": "Tipo propiedad",
+            "property_type": "Tipo propiedad (detalle)", "provincia": "Departamento",
+            "energy_performance_category": "Categoría energética",
+            "ghg_category": "Categoría GHG", "floor": "Planta",
+            "price_per_m2": "Precio/m²", "city": "Ciudad",
+        }
+        df_result = pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
+        df_result["Variable"] = df_result["Variable"].map(lambda x: VAR_NAMES.get(x, x))
+        return df_result
 
         var_df = compute_variance_explained(df)
         var_df["Efecto"] = var_df["Eta2"].apply(
@@ -879,6 +925,30 @@ with tab5:
         fig.update_layout(paper_bgcolor="white", height=300)
         st.plotly_chart(fig, use_container_width=True)
         st.caption("0% = precio mínimo de la zona · 100% = precio máximo de la zona")
+
+        # Distancias a ciudades principales
+        import math
+        def haversine_simple(lat1, lon1, lat2, lon2):
+            R = 6371
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+            return round(R * 2 * math.asin(math.sqrt(a)))
+
+        CIUDADES_DIST = {
+            "🗼 París":    (48.8566,  2.3522),
+            "🦁 Lyon":     (45.7640,  4.8357),
+            "⛵ Marsella": (43.2965,  5.3698),
+            "🍷 Burdeos":  (44.8378, -0.5792),
+            "🌊 Niza":     (43.7102,  7.2620),
+        }
+        dists_display = {ciudad: haversine_simple(dept_lat, dept_lon, clat, clon) 
+                        for ciudad, (clat, clon) in CIUDADES_DIST.items()}
+        
+        st.markdown("**🗺️ Distancias desde este departamento:**")
+        dist_cols = st.columns(5)
+        for i, (ciudad, km) in enumerate(dists_display.items()):
+            dist_cols[i].metric(ciudad, f"{km} km")
 
         # Mini mapa con la ubicación seleccionada
         st.markdown(f"**📍 Ubicación: {dept_name}**")
