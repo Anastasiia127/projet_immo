@@ -508,22 +508,22 @@ with tab1:
         df_result["Variable"] = df_result["Variable"].map(lambda x: VAR_NAMES.get(x, x))
         return df_result
 
-        var_df = compute_variance_explained(df)
-        var_df["Efecto"] = var_df["Eta2"].apply(
-            lambda x: "Grande" if x >= 0.14 else ("Medio" if x >= 0.06 else ("Pequeno" if x >= 0.01 else "Negligible"))
-        )
-        fig = px.bar(
-            var_df.sort_values("Eta2"), x="Eta2", y="Variable",
-            color="Efecto",
-            color_discrete_map={"Grande": "#0d9488", "Medio": "#818cf8", "Pequeno": "#f59e0b", "Negligible": "#e74c3c"},
-            orientation="h",
-            title="Top 20 variables por varianza explicada en log(precio)",
-            labels={"Eta2": "R2 / eta2", "Variable": "Variable", "Efecto": "Efecto"},
-            text="Eta2",
-        )
-        fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
-        fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=550)
-        st.plotly_chart(fig, use_container_width=True)
+    var_df = compute_variance_explained(df)
+    var_df["Efecto"] = var_df["Eta2"].apply(
+        lambda x: "Grande" if x >= 0.14 else ("Medio" if x >= 0.06 else ("Pequeno" if x >= 0.01 else "Negligible"))
+    )
+    fig = px.bar(
+        var_df.sort_values("Eta2"), x="Eta2", y="Variable",
+        color="Efecto",
+        color_discrete_map={"Grande": "#0d9488", "Medio": "#818cf8", "Pequeno": "#f59e0b", "Negligible": "#e74c3c"},
+        orientation="h",
+        title="Top 20 variables por varianza explicada en log(precio)",
+        labels={"Eta2": "R2 / eta2", "Variable": "Variable", "Efecto": "Efecto"},
+        text="Eta2",
+    )
+    fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
+    fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=550)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
