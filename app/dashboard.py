@@ -488,7 +488,7 @@ with tab1:
                         results.append({"Variable": col, "Tipo": "categorica", "Eta2": round(r2, 4)})
                 except Exception:
                     continue
-            VAR_NAMES = {
+        VAR_NAMES = {
             "nb_rooms": "Nº habitaciones", "nb_bathrooms": "Nº baños",
             "nb_bedrooms": "Nº dormitorios", "nb_parking_places": "Plazas parking",
             "nb_boxes": "Nº trasteros", "nb_photos": "Nº fotos",
