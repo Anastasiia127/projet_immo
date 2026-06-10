@@ -815,20 +815,49 @@ with tab5:
         )
 
     with col2:
-        st.markdown("**Caracteristicas fisicas**")
-        size_sel      = st.number_input("Superficie (m²)", min_value=10, max_value=1000, value=80, step=5)
-        rooms_sel     = st.number_input("Numero de habitaciones", min_value=1, max_value=20, value=3)
-        bedrooms_sel  = st.number_input("Numero de dormitorios", min_value=0, max_value=15, value=2)
-        bathrooms_sel = st.number_input("Numero de banos", min_value=0, max_value=10, value=1)
+        st.markdown("**Características físicas**")
+        size_sel = st.number_input("Superficie (m²)", min_value=10, max_value=1000, value=80, step=5)
+        
+        # Ocultar habitaciones para terreno/local
+        if tipo_sel in ["terreno", "local_comercial"]:
+            rooms_sel     = 0
+            bedrooms_sel  = 0
+            bathrooms_sel = 0
+            st.info("Para terrenos y locales no aplican habitaciones ni baños.")
+        else:
+            rooms_sel     = st.number_input("Nº total de piezas (habitaciones + salón)", min_value=1, max_value=20, value=3,
+                                            help="Cuenta todas las piezas habitables: salón, dormitorios, etc.")
+            bedrooms_sel  = st.number_input("Nº de dormitorios", min_value=0, max_value=15, value=2,
+                                            help="Solo dormitorios. 0 = estudio/loft.")
+            bathrooms_sel = st.number_input("Nº de baños/aseos", min_value=1, max_value=10, value=1,
+                                            help="Incluye baños completos y aseos.")
 
     with col3:
         st.markdown("**Extras**")
         parking_sel = st.number_input("Plazas de parking", min_value=0, max_value=5, value=0)
-        balcony_sel = st.checkbox("Tiene balcon", value=False)
-        cellar_sel  = st.checkbox("Tiene sotano", value=False)
+        balcony_sel = st.checkbox("Tiene balcón", value=False)
+        cellar_sel  = st.checkbox("Tiene sótano", value=False)
         garage_sel  = st.checkbox("Tiene garaje", value=False)
         ac_sel      = st.checkbox("Tiene aire acondicionado", value=False)
-        energy_sel  = st.selectbox("Clase energetica", options=["A", "B", "C", "D", "E", "F", "G"], index=3)
+        energy_sel  = st.selectbox("Clase energética", options=["No importa", "A", "B", "C", "D", "E", "F", "G"], index=0,
+                                   help="A = más eficiente, G = menos eficiente. 'No importa' usa valor medio.")
+
+    # Resumen de lo seleccionado
+    extras = []
+    if balcony_sel: extras.append("balcón")
+    if cellar_sel:  extras.append("sótano")
+    if garage_sel:  extras.append("garaje")
+    if ac_sel:      extras.append("A/C")
+    if parking_sel: extras.append(f"{parking_sel} parking")
+    extras_txt = " · ".join(extras) if extras else "sin extras"
+    energy_txt = f"clase {energy_sel}" if energy_sel != "No importa" else "clase energética indiferente"
+    tipo_icons2 = {"apartamento": "🏢", "casa": "🏘️", "terreno": "🌿", "local_comercial": "🏪", "otro": "📦"}
+    dept_display = format_dept(provincia_sel)
+    
+    if tipo_sel not in ["terreno", "local_comercial"]:
+        st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {rooms_sel} piezas · {bedrooms_sel} dorm. · {bathrooms_sel} baños · {extras_txt} · {energy_txt} · 📍 {dept_display}")
+    else:
+        st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {extras_txt} · 📍 {dept_display}")
 
     st.divider()
 
@@ -853,7 +882,7 @@ with tab5:
             "has_a_cellar":         int(cellar_sel),
             "has_a_garage":         int(garage_sel),
             "has_air_conditioning": int(ac_sel),
-            "has_energy_cert":      1,
+            "has_energy_cert":      0 if energy_sel == "No importa" else 1,
             "has_ghg_value":        0,
             "property_group":       property_group,
         }
@@ -890,8 +919,8 @@ with tab5:
         dept_name  = DEPT_NOMBRES.get(provincia_sel, provincia_sel)
 
         # Filtrar viviendas similares: mismo tipo, mismo departamento, superficie ±30%
-        size_min = size_sel * 0.7
-        size_max = size_sel * 1.3
+        size_min = size_sel * 0.8
+        size_max = size_sel * 1.2
         similares = df[
             (df["provincia"] == provincia_sel) &
             (df["property_type_group"] == tipo_sel) &
