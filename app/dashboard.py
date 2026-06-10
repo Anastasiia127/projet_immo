@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, get_all_predictions, get_demo_predictions, DEMO_METRICS, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES, build_input_for_model, load_mlp_artifacts
+from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES, build_input_for_model
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
 
 # ── Configuración de página ────────────────────────────────────────────────────
@@ -612,9 +612,9 @@ with tab2:
         n_train = int(len(df) * 0.8)
         n_test  = len(df) - n_train
         st.markdown("**Parámetros del split:**")
-        st.markdown(f"- Método: `train_test_split` (scikit-learn)")
-        st.markdown(f"- `random_state = 42`")
-        st.markdown(f"- `test_size = 0.2`")
+        st.markdown("- Método: `train_test_split` (scikit-learn)")
+        st.markdown("- `random_state = 42`")
+        st.markdown("- `test_size = 0.2`")
         st.markdown(f"- Filas entrenamiento: **{n_train:,}**".replace(",", "."))
         st.markdown(f"- Filas validación: **{n_test:,}**".replace(",", "."))
 
