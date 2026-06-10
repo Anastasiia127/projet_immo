@@ -125,9 +125,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 with tab1:
 
     # ── Filtro por tipo de propiedad ──────────────────────────────────────────
+    st.markdown("**Filtro de tipo de propiedad** — afecta a todos los gráficos de precios y mapas de abajo:")
     tipos_disponibles = sorted(df["property_type_group"].unique().tolist())
     tipos_sel = st.multiselect(
-        "Filtrar por tipo de propiedad",
+        "Selecciona tipos de propiedad",
         options=tipos_disponibles,
         default=["apartamento", "casa"],
     )
@@ -147,159 +148,8 @@ with tab1:
         *Los tipos están en francés porque el dataset proviene del Institut Louis Bachelier (Francia).*
         """)
 
-    st.markdown('<div class="section-title">Distribución de precios</div>', unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        fig = px.histogram(
-            df_filtrado, x=TARGET, nbins=80,
-            title="Distribución del precio (€)",
-            labels={TARGET: "Precio (€)"},
-            color_discrete_sequence=["#1a1a1a"],
-        )
-        fig.update_layout(bargap=0.05, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
-        st.plotly_chart(fig, use_container_width=True)
-        st.caption("📊 Cada barra representa un rango de precios. El pico más alto indica el precio más frecuente. La cola larga a la derecha revela la presencia de viviendas muy caras (outliers).")
-
-    with col2:
-        fig = px.box(
-            df_filtrado, x="property_type_group", y=TARGET,
-            title="Precio por tipo de propiedad",
-            labels={TARGET: "Precio (€)", "property_type_group": "Tipo"},
-            color_discrete_sequence=["#1a1a1a"],
-        )
-        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
-        st.plotly_chart(fig, use_container_width=True)
-        st.caption("📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
-
-    st.markdown('<div class="section-title">Precio por ciudad (top 20)</div>', unsafe_allow_html=True)
-    st.caption("Se usa la **mediana** y no la media porque es más robusta frente a precios extremos. Las ciudades de la costa (Cannes, Niza) y París suelen liderar este ranking.")
-
-    city_agg = (
-        df_filtrado.groupby(["city", "provincia"])
-        .agg(precio_mediano=(TARGET, "median"), n=(TARGET, "count"))
-        .reset_index()
-    )
-    # Mínimo 5 viviendas para evitar pueblos con 1 villa muy cara
-    top_cities = (
-        city_agg[city_agg["n"] >= 5]
-        .sort_values("precio_mediano", ascending=False)
-        .head(20)
-    )
-    top_cities["ciudad_provincia"] = top_cities["city"] + " (" + top_cities["provincia"].map(DEPT_NOMBRES).fillna(top_cities["provincia"]) + ")"
-
-    fig = px.bar(
-        top_cities, x="ciudad_provincia", y="precio_mediano",
-        title="Precio mediano por ciudad — Top 20 (mín. 5 viviendas)",
-        labels={"precio_mediano": "Precio mediano (€)", "ciudad_provincia": "Ciudad"},
-        color="precio_mediano",
-        color_continuous_scale=["#e8e0d5", "#1a1a1a"],
-        hover_data={"n": True, "provincia": True, "ciudad_provincia": False},
-    )
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-35)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # ── Mapa de Francia ───────────────────────────────────────────────────────
-    st.markdown('<div class="section-title">Mapa de precios por ubicación</div>', unsafe_allow_html=True)
-    st.caption("🟢 Verde = precio bajo · 🟡 Amarillo = precio medio · 🔴 Rojo = precio alto. El **tamaño** de cada punto indica cuántas viviendas hay en esa zona. Pasa el ratón por encima para ver el detalle.")
-
-    mapa_df = (
-        df_filtrado
-        .assign(
-            lat=df_filtrado["approximate_latitude"].round(1),
-            lon=df_filtrado["approximate_longitude"].round(1),
-        )
-        .groupby(["lat", "lon"])
-        .agg(
-            precio_mediano=(TARGET, "median"),
-            n=(TARGET, "count"),
-            precio_m2=("price_per_m2", "median"),
-        )
-        .reset_index()
-    )
-
-    fig = px.scatter_mapbox(
-        mapa_df,
-        lat="lat", lon="lon",
-        color="precio_mediano",
-        size="n",
-        size_max=35,
-        zoom=5,
-        center={"lat": 46.5, "lon": 2.5},
-        color_continuous_scale="RdYlGn_r",  # verde=barato, amarillo=medio, rojo=caro
-        range_color=[mapa_df["precio_mediano"].quantile(0.05), mapa_df["precio_mediano"].quantile(0.95)],
-        hover_data={"precio_mediano": ":,.0f", "precio_m2": ":,.0f", "n": True, "lat": False, "lon": False},
-        labels={"precio_mediano": "Precio mediano (€)", "precio_m2": "€/m²", "n": "Viviendas"},
-        title="Distribución geográfica del precio mediano — 🟢 barato · 🟡 medio · 🔴 caro",
-        mapbox_style="carto-positron",
-        height=600,
-        opacity=0.85,
-    )
-    fig.update_layout(
-        paper_bgcolor="#f5f0eb",
-        margin={"r": 0, "t": 40, "l": 0, "b": 0},
-        coloraxis_colorbar=dict(
-            title="Precio (€)",
-            tickformat=",.0f",
-        ),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown('<div class="section-title">Correlación entre variables numéricas</div>', unsafe_allow_html=True)
-    st.caption("Valores cercanos a **+1**: correlación positiva fuerte (ambas variables suben juntas). Cercanos a **-1**: correlación negativa. Cercanos a **0**: sin relación. Las variables con mayor correlación con `price` son las más útiles para el modelo.")
-
-    num_cols = [c for c in NUMERICAL_FEATURES if c in df.columns] + [TARGET]
-    corr = df[num_cols].corr()
-    fig = px.imshow(
-        corr,
-        text_auto=".2f",
-        color_continuous_scale=["#f5f0eb", "#1a1a1a"],
-        title="Matriz de correlación",
-        aspect="auto",
-    )
-    fig.update_layout(paper_bgcolor="#f5f0eb")
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown('<div class="section-title">Valores nulos por columna</div>', unsafe_allow_html=True)
-    st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 70% (floor, land_size, exposition) se excluyen directamente. El resto se imputa con la mediana o la moda.")
-
-    nulls = df.isnull().sum().reset_index()
-    nulls.columns = ["columna", "nulos"]
-    nulls["porcentaje"] = (nulls["nulos"] / len(df) * 100).round(1)
-    nulls = nulls[nulls["nulos"] > 0].sort_values("nulos", ascending=False)
-
-    if nulls.empty:
-        st.success("No hay valores nulos en el dataset procesado.")
-    else:
-        fig = px.bar(
-            nulls, x="columna", y="porcentaje",
-            title="% de valores nulos por columna",
-            labels={"porcentaje": "% nulos", "columna": "Columna"},
-            color="porcentaje",
-            color_continuous_scale=["#e8e0d5", "#e74c3c"],
-            text="porcentaje",
-        )
-        fig.update_traces(texttemplate="%{text}%")
-        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
-        st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown('<div class="section-title">Precio vs Superficie</div>', unsafe_allow_html=True)
-    st.caption("Relación entre el tamaño de la vivienda (m²) y su precio (€). Idealmente deberíamos ver una tendencia positiva: a mayor superficie, mayor precio. Los puntos muy separados de esa tendencia son anomalías interesantes.")
-
-    sample = df_filtrado.sample(min(3000, len(df_filtrado)), random_state=42)
-    fig = px.scatter(
-        sample, x="size", y=TARGET,
-        color="property_type_group",
-        title="Precio vs Superficie (muestra de hasta 3.000 viviendas)",
-        labels={"size": "Superficie (m²)", TARGET: "Precio (€)", "property_type_group": "Tipo"},
-        opacity=0.5,
-    )
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
-    st.plotly_chart(fig, use_container_width=True)
-
-
-    # ── Mapa choropleth por departamento ──────────────────────────────────────
-    st.markdown('<div class="section-title">Precio mediano por departamento (mapa coroplético)</div>', unsafe_allow_html=True)
+    # ── Mapa choroplético (primero — más visual) ──────────────────────────────
+    st.markdown('<div class="section-title">Precio mediano por departamento</div>', unsafe_allow_html=True)
     st.caption("Cada departamento está coloreado según el precio mediano de sus viviendas. 🟢 Verde = más barato · 🔴 Rojo = más caro. Pasa el ratón para ver el nombre y precio.")
 
     geojson = get_geojson()
@@ -337,138 +187,288 @@ with tab1:
     else:
         st.warning("No se pudo cargar el mapa de departamentos. Verifica tu conexión a internet.")
 
+    # ── Mapa de puntos ────────────────────────────────────────────────────────
+    st.markdown('<div class="section-title">Mapa de precios por ubicación</div>', unsafe_allow_html=True)
+    st.caption("🟢 Verde = precio bajo · 🟡 Amarillo = precio medio · 🔴 Rojo = precio alto. El **tamaño** de cada punto indica cuántas viviendas hay en esa zona. Pasa el ratón por encima para ver el detalle.")
 
-    # ── Análisis de listings por ciudad y tipo ────────────────────────────────
-    st.markdown('<div class="section-title">Análisis de listings</div>', unsafe_allow_html=True)
-    st.caption("Distribución de anuncios por ciudad, departamento y tipo de propiedad. Basado en el análisis descriptivo del equipo.")
+    mapa_df = (
+        df_filtrado
+        .assign(
+            lat=df_filtrado["approximate_latitude"].round(1),
+            lon=df_filtrado["approximate_longitude"].round(1),
+        )
+        .groupby(["lat", "lon"])
+        .agg(
+            precio_mediano=(TARGET, "median"),
+            n=(TARGET, "count"),
+            precio_m2=("price_per_m2", "median"),
+        )
+        .reset_index()
+    )
+
+    fig = px.scatter_mapbox(
+        mapa_df,
+        lat="lat", lon="lon",
+        color="precio_mediano",
+        size="n",
+        size_max=35,
+        zoom=5,
+        center={"lat": 46.5, "lon": 2.5},
+        color_continuous_scale="RdYlGn_r",
+        range_color=[mapa_df["precio_mediano"].quantile(0.05), mapa_df["precio_mediano"].quantile(0.95)],
+        hover_data={"precio_mediano": ":,.0f", "precio_m2": ":,.0f", "n": True, "lat": False, "lon": False},
+        labels={"precio_mediano": "Precio mediano (€)", "precio_m2": "€/m²", "n": "Viviendas"},
+        title="Distribución geográfica del precio mediano — 🟢 barato · 🟡 medio · 🔴 caro",
+        mapbox_style="carto-positron",
+        height=600,
+        opacity=0.85,
+    )
+    fig.update_layout(
+        paper_bgcolor="#f5f0eb",
+        margin={"r": 0, "t": 40, "l": 0, "b": 0},
+        coloraxis_colorbar=dict(
+            title="Precio (€)",
+            tickformat=",.0f",
+        ),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Distribución de precios ───────────────────────────────────────────────
+    st.markdown('<div class="section-title">Distribución de precios</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
-
     with col1:
-        top_listings = (
-            df.groupby("city").size().reset_index(name="listings")
-            .sort_values("listings", ascending=False).head(20)
+        fig = px.histogram(
+            df_filtrado, x=TARGET, nbins=80,
+            title="Distribución del precio (€)",
+            labels={TARGET: "Precio (€)"},
+            color_discrete_sequence=["#1a1a1a"],
         )
-        fig = px.bar(
-            top_listings, x="city", y="listings",
-            title="Top 20 ciudades por número de anuncios",
-            labels={"listings": "Nº anuncios", "city": "Ciudad"},
-            color="listings", color_continuous_scale=["#a8c8e8", "#1a5fa8"],
-            text="listings",
-        )
-        fig.update_traces(texttemplate="%{text}", textposition="outside")
-        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+        fig.update_layout(bargap=0.05, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("Ciudades con más anuncios tienen mayor representación — sus precios son más fiables para el modelo.")
+        st.caption("📊 Cada barra representa un rango de precios. El pico más alto indica el precio más frecuente. La cola larga a la derecha revela la presencia de viviendas muy caras (outliers).")
 
     with col2:
-        proptype_counts = (
-            df.groupby("property_type").size().reset_index(name="listings")
+        fig = px.box(
+            df_filtrado, x="property_type_group", y=TARGET,
+            title="Precio por tipo de propiedad",
+            labels={TARGET: "Precio (€)", "property_type_group": "Tipo"},
+            color_discrete_sequence=["#1a1a1a"],
+        )
+        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
+
+    # ── Top ciudades ──────────────────────────────────────────────────────────
+    st.markdown('<div class="section-title">Precio por ciudad (top 20)</div>', unsafe_allow_html=True)
+    st.caption("Se usa la **mediana** y no la media porque es más robusta frente a precios extremos. Las ciudades de la costa (Cannes, Niza) y París suelen liderar este ranking.")
+
+    city_agg = (
+        df_filtrado.groupby(["city", "provincia"])
+        .agg(precio_mediano=(TARGET, "median"), n=(TARGET, "count"))
+        .reset_index()
+    )
+    top_cities = (
+        city_agg[city_agg["n"] >= 5]
+        .sort_values("precio_mediano", ascending=False)
+        .head(20)
+    )
+    top_cities["ciudad_provincia"] = top_cities["city"] + " (" + top_cities["provincia"].map(DEPT_NOMBRES).fillna(top_cities["provincia"]) + ")"
+
+    fig = px.bar(
+        top_cities, x="ciudad_provincia", y="precio_mediano",
+        title="Precio mediano por ciudad — Top 20 (mín. 5 viviendas)",
+        labels={"precio_mediano": "Precio mediano (€)", "ciudad_provincia": "Ciudad"},
+        color="precio_mediano",
+        color_continuous_scale=["#e8e0d5", "#1a1a1a"],
+        hover_data={"n": True, "provincia": True, "ciudad_provincia": False},
+    )
+    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-35)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ── Precio vs Superficie ──────────────────────────────────────────────────
+    st.markdown('<div class="section-title">Precio vs Superficie</div>', unsafe_allow_html=True)
+    st.caption("Relación entre el tamaño de la vivienda (m²) y su precio (€). Idealmente deberíamos ver una tendencia positiva: a mayor superficie, mayor precio. Los puntos muy separados de esa tendencia son anomalías interesantes.")
+
+    sample = df_filtrado.sample(min(3000, len(df_filtrado)), random_state=42)
+    fig = px.scatter(
+        sample, x="size", y=TARGET,
+        color="property_type_group",
+        title="Precio vs Superficie (muestra de hasta 3.000 viviendas)",
+        labels={"size": "Superficie (m²)", TARGET: "Precio (€)", "property_type_group": "Tipo"},
+        opacity=0.5,
+    )
+    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+    st.markdown("### 🔬 Análisis técnico del dataset")
+    st.caption("Las siguientes secciones muestran el análisis estadístico del dataset completo (sin filtro de tipo de propiedad).")
+
+    # ── Correlación (en expander, sin filtro) ─────────────────────────────────
+    with st.expander("📊 Correlación entre variables numéricas"):
+        st.caption("Valores cercanos a **+1**: correlación positiva fuerte (ambas variables suben juntas). Cercanos a **-1**: correlación negativa. Cercanos a **0**: sin relación. Las variables con mayor correlación con `price` son las más útiles para el modelo.")
+        num_cols = [c for c in NUMERICAL_FEATURES if c in df.columns] + [TARGET]
+        corr = df[num_cols].corr()
+        fig = px.imshow(
+            corr,
+            text_auto=".2f",
+            color_continuous_scale=["#f5f0eb", "#1a1a1a"],
+            title="Matriz de correlación",
+            aspect="auto",
+        )
+        fig.update_layout(paper_bgcolor="#f5f0eb")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ── Valores nulos (en expander, sin filtro) ───────────────────────────────
+    with st.expander("🕳️ Valores nulos por columna"):
+        st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 70% (floor, land_size, exposition) se excluyen directamente. El resto se imputa con la mediana o la moda.")
+        nulls = df.isnull().sum().reset_index()
+        nulls.columns = ["columna", "nulos"]
+        nulls["porcentaje"] = (nulls["nulos"] / len(df) * 100).round(1)
+        nulls = nulls[nulls["nulos"] > 0].sort_values("nulos", ascending=False)
+        if nulls.empty:
+            st.success("No hay valores nulos en el dataset procesado.")
+        else:
+            fig = px.bar(
+                nulls, x="columna", y="porcentaje",
+                title="% de valores nulos por columna",
+                labels={"porcentaje": "% nulos", "columna": "Columna"},
+                color="porcentaje",
+                color_continuous_scale=["#e8e0d5", "#e74c3c"],
+                text="porcentaje",
+            )
+            fig.update_traces(texttemplate="%{text}%")
+            fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ── Análisis de listings (en expander, sin filtro) ────────────────────────
+    with st.expander("📋 Análisis de listings por ciudad y tipo"):
+        st.caption("Distribución de anuncios por ciudad, departamento y tipo de propiedad.")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            top_listings = (
+                df.groupby("city").size().reset_index(name="listings")
+                .sort_values("listings", ascending=False).head(20)
+            )
+            fig = px.bar(
+                top_listings, x="city", y="listings",
+                title="Top 20 ciudades por número de anuncios",
+                labels={"listings": "Nº anuncios", "city": "Ciudad"},
+                color="listings", color_continuous_scale=["#a8c8e8", "#1a5fa8"],
+                text="listings",
+            )
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
+            fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption("Ciudades con más anuncios tienen mayor representación — sus precios son más fiables para el modelo.")
+
+        with col2:
+            proptype_counts = (
+                df.groupby("property_type").size().reset_index(name="listings")
+                .sort_values("listings", ascending=False)
+            )
+            proptype_counts["sparse"] = proptype_counts["listings"].apply(
+                lambda x: "< 30 (escaso)" if x < 30 else ">= 30"
+            )
+            fig = px.bar(
+                proptype_counts, x="property_type", y="listings",
+                color="sparse",
+                color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
+                title="Anuncios por tipo de propiedad",
+                labels={"listings": "Nº anuncios", "property_type": "Tipo", "sparse": ""},
+                text="listings",
+            )
+            fig.update_traces(texttemplate="%{text}", textposition="outside")
+            fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption("Tipos en naranja tienen menos de 30 anuncios — pueden causar problemas en el modelo.")
+
+        dept_listings = (
+            df.groupby("provincia").size().reset_index(name="listings")
             .sort_values("listings", ascending=False)
         )
-        proptype_counts["sparse"] = proptype_counts["listings"].apply(
+        dept_listings["nombre"] = dept_listings["provincia"].map(DEPT_NOMBRES).fillna(dept_listings["provincia"])
+        dept_listings["sparse"] = dept_listings["listings"].apply(
             lambda x: "< 30 (escaso)" if x < 30 else ">= 30"
         )
         fig = px.bar(
-            proptype_counts, x="property_type", y="listings",
+            dept_listings, x="nombre", y="listings",
             color="sparse",
             color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
-            title="Anuncios por tipo de propiedad",
-            labels={"listings": "Nº anuncios", "property_type": "Tipo", "sparse": ""},
+            title="Número de anuncios por departamento",
+            labels={"listings": "Nº anuncios", "nombre": "Departamento", "sparse": ""},
             text="listings",
         )
         fig.update_traces(texttemplate="%{text}", textposition="outside")
-        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45, height=450)
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("Tipos en naranja tienen menos de 30 anuncios — pueden causar problemas en el modelo.")
 
-    st.markdown('<div class="section-title">Anuncios por departamento</div>', unsafe_allow_html=True)
-    st.caption("Departamentos con pocos anuncios pueden necesitar agrupación antes del modelado.")
+        sparse_cities = (
+            df.groupby("city").size().reset_index(name="listings")
+            .query("listings < 30").sort_values("listings")
+        )
+        n_sparse = len(sparse_cities)
+        total_sparse = sparse_cities["listings"].sum()
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Ciudades con < 30 anuncios", n_sparse)
+        col2.metric("Anuncios en esas ciudades", f"{total_sparse:,}".replace(",", "."))
+        col3.metric("% del dataset", f"{total_sparse/len(df)*100:.1f}%")
+        st.caption(f"Hay {n_sparse} ciudades subrepresentadas. Se recomienda agruparlas por departamento en el modelo.")
 
-    dept_listings = (
-        df.groupby("provincia").size().reset_index(name="listings")
-        .sort_values("listings", ascending=False)
-    )
-    dept_listings["nombre"] = dept_listings["provincia"].map(DEPT_NOMBRES).fillna(dept_listings["provincia"])
-    dept_listings["sparse"] = dept_listings["listings"].apply(
-        lambda x: "< 30 (escaso)" if x < 30 else ">= 30"
-    )
-    fig = px.bar(
-        dept_listings, x="nombre", y="listings",
-        color="sparse",
-        color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
-        title="Número de anuncios por departamento",
-        labels={"listings": "Nº anuncios", "nombre": "Departamento", "sparse": ""},
-        text="listings",
-    )
-    fig.update_traces(texttemplate="%{text}", textposition="outside")
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45, height=450)
-    st.plotly_chart(fig, use_container_width=True)
+    # ── Varianza explicada (en expander, sin filtro) ──────────────────────────
+    with st.expander("📈 Varianza del precio explicada por cada variable"):
+        st.caption("Cuánto explica cada variable la variacion del precio. Mayor valor = mas util para el modelo.")
 
-    sparse_cities = (
-        df.groupby("city").size().reset_index(name="listings")
-        .query("listings < 30").sort_values("listings")
-    )
-    n_sparse = len(sparse_cities)
-    total_sparse = sparse_cities["listings"].sum()
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Ciudades con < 30 anuncios", n_sparse)
-    col2.metric("Anuncios en esas ciudades", f"{total_sparse:,}".replace(",", "."))
-    col3.metric("% del dataset", f"{total_sparse/len(df)*100:.1f}%")
-    st.caption(f"Hay {n_sparse} ciudades subrepresentadas. Se recomienda agruparlas por departamento en el modelo.")
+        @st.cache_data(show_spinner="Calculando varianza explicada...")
+        def compute_variance_explained(_df):
+            from sklearn.linear_model import LinearRegression
+            from sklearn.preprocessing import LabelEncoder
+            import warnings
+            warnings.filterwarnings("ignore")
+            df_var = _df[_df["price"] > 0].copy()
+            df_var["log_price"] = np.log(df_var["price"])
+            results = []
+            skip_cols = {"price", "log_price", "price_per_m2", "id_annonce",
+                         "approximate_latitude", "approximate_longitude", "postal_code"}
+            for col in df_var.columns:
+                if col in skip_cols:
+                    continue
+                series = df_var[col].dropna()
+                if len(series) < 100 or series.nunique() < 2:
+                    continue
+                try:
+                    y = df_var.loc[series.index, "log_price"]
+                    if pd.api.types.is_numeric_dtype(series):
+                        X_col = series.values.reshape(-1, 1)
+                        r2 = LinearRegression().fit(X_col, y).score(X_col, y)
+                        results.append({"Variable": col, "Tipo": "numerica", "Eta2": round(r2, 4)})
+                    else:
+                        le = LabelEncoder()
+                        X_col = le.fit_transform(series.astype(str)).reshape(-1, 1)
+                        r2 = LinearRegression().fit(X_col, y).score(X_col, y)
+                        results.append({"Variable": col, "Tipo": "categorica", "Eta2": round(r2, 4)})
+                except Exception:
+                    continue
+            return pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
 
-    st.markdown('<div class="section-title">Varianza del precio explicada por cada variable</div>', unsafe_allow_html=True)
-    st.caption("Cuánto explica cada variable la variacion del precio. Mayor valor = mas util para el modelo.")
-
-    @st.cache_data(show_spinner="Calculando varianza explicada...")
-    def compute_variance_explained(_df):
-        from sklearn.linear_model import LinearRegression
-        from sklearn.preprocessing import LabelEncoder
-        import warnings
-        warnings.filterwarnings("ignore")
-        df_var = _df[_df["price"] > 0].copy()
-        df_var["log_price"] = np.log(df_var["price"])
-        results = []
-        skip_cols = {"price", "log_price", "price_per_m2", "id_annonce",
-                     "approximate_latitude", "approximate_longitude", "postal_code"}
-        for col in df_var.columns:
-            if col in skip_cols:
-                continue
-            series = df_var[col].dropna()
-            if len(series) < 100 or series.nunique() < 2:
-                continue
-            try:
-                y = df_var.loc[series.index, "log_price"]
-                if pd.api.types.is_numeric_dtype(series):
-                    X_col = series.values.reshape(-1, 1)
-                    r2 = LinearRegression().fit(X_col, y).score(X_col, y)
-                    results.append({"Variable": col, "Tipo": "numerica", "Eta2": round(r2, 4)})
-                else:
-                    le = LabelEncoder()
-                    X_col = le.fit_transform(series.astype(str)).reshape(-1, 1)
-                    r2 = LinearRegression().fit(X_col, y).score(X_col, y)
-                    results.append({"Variable": col, "Tipo": "categorica", "Eta2": round(r2, 4)})
-            except Exception:
-                continue
-        return pd.DataFrame(results).sort_values("Eta2", ascending=False).head(20)
-
-    var_df = compute_variance_explained(df)
-    var_df["Efecto"] = var_df["Eta2"].apply(
-        lambda x: "Grande" if x >= 0.14 else ("Medio" if x >= 0.06 else ("Pequeno" if x >= 0.01 else "Negligible"))
-    )
-    fig = px.bar(
-        var_df.sort_values("Eta2"), x="Eta2", y="Variable",
-        color="Efecto",
-        color_discrete_map={"Grande": "#2ca02c", "Medio": "#ff7f0e", "Pequeno": "#1a5fa8", "Negligible": "#d62728"},
-        orientation="h",
-        title="Top 20 variables por varianza explicada en log(precio)",
-        labels={"Eta2": "R2 / eta2", "Variable": "Variable", "Efecto": "Efecto"},
-        text="Eta2",
-    )
-    fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", height=550)
-    st.plotly_chart(fig, use_container_width=True)
-
+        var_df = compute_variance_explained(df)
+        var_df["Efecto"] = var_df["Eta2"].apply(
+            lambda x: "Grande" if x >= 0.14 else ("Medio" if x >= 0.06 else ("Pequeno" if x >= 0.01 else "Negligible"))
+        )
+        fig = px.bar(
+            var_df.sort_values("Eta2"), x="Eta2", y="Variable",
+            color="Efecto",
+            color_discrete_map={"Grande": "#2ca02c", "Medio": "#ff7f0e", "Pequeno": "#1a5fa8", "Negligible": "#d62728"},
+            orientation="h",
+            title="Top 20 variables por varianza explicada en log(precio)",
+            labels={"Eta2": "R2 / eta2", "Variable": "Variable", "Efecto": "Efecto"},
+            text="Eta2",
+        )
+        fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
+        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", height=550)
+        st.plotly_chart(fig, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
