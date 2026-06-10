@@ -887,8 +887,28 @@ with tab5:
             fuente      = "Estimación estadística (mediana)"
 
         precio_m2  = precio_pred / size_sel
-        zona_stats = df[df["provincia"] == provincia_sel]["price"].describe()
         dept_name  = DEPT_NOMBRES.get(provincia_sel, provincia_sel)
+
+        # Filtrar viviendas similares: mismo tipo, mismo departamento, superficie ±30%
+        size_min = size_sel * 0.7
+        size_max = size_sel * 1.3
+        similares = df[
+            (df["provincia"] == provincia_sel) &
+            (df["property_type_group"] == tipo_sel) &
+            (df["size"] >= size_min) &
+            (df["size"] <= size_max)
+        ]
+        # Fallback si hay pocas
+        if len(similares) < 5:
+            similares = df[
+                (df["provincia"] == provincia_sel) &
+                (df["property_type_group"] == tipo_sel)
+            ]
+        if len(similares) < 5:
+            similares = df[df["provincia"] == provincia_sel]
+
+        zona_stats = similares["price"].describe()
+        n_similares = len(similares)
 
         st.success("Estimación calculada")
         r1, r2, r3 = st.columns(3)
@@ -897,19 +917,21 @@ with tab5:
         r3.metric("Superficie",       f"{size_sel} m²")
         st.caption(f"Fuente: {fuente}")
 
-        st.markdown(f"**Contexto en {dept_name} (Dpto. {provincia_sel}):**")
+        tipo_label = {"apartamento": "apartamentos", "casa": "casas", "terreno": "terrenos",
+                      "local_comercial": "locales", "otro": "otros"}.get(tipo_sel, tipo_sel)
+        st.markdown(f"**Contexto: {tipo_label} de {int(size_min)}–{int(size_max)} m² en {dept_name}** *(basado en {n_similares} viviendas similares)*")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Precio mínimo zona",  f"{int(zona_stats['min']):,} €".replace(",", "."))
-        c2.metric("Precio mediano zona", f"{int(zona_stats['50%']):,} €".replace(",", "."))
-        c3.metric("Precio medio zona",   f"{int(zona_stats['mean']):,} €".replace(",", "."))
-        c4.metric("Precio máximo zona",  f"{int(zona_stats['max']):,} €".replace(",", "."))
+        c1.metric("Precio mínimo",  f"{int(zona_stats['min']):,} €".replace(",", "."))
+        c2.metric("Precio mediano", f"{int(zona_stats['50%']):,} €".replace(",", "."))
+        c3.metric("Precio medio",   f"{int(zona_stats['mean']):,} €".replace(",", "."))
+        c4.metric("Precio máximo",  f"{int(zona_stats['max']):,} €".replace(",", "."))
 
         pct = (precio_pred - zona_stats["min"]) / (zona_stats["max"] - zona_stats["min"]) * 100
         pct = max(0, min(100, pct))
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=pct,
-            title={"text": f"Posición relativa en {dept_name}"},
+            title={"text": f"Posición relativa entre viviendas similares en {dept_name}"},
             gauge={
                 "axis":  {"range": [0, 100], "ticksuffix": "%"},
                 "bar":   {"color": "#0d9488"},
@@ -923,7 +945,7 @@ with tab5:
         ))
         fig.update_layout(paper_bgcolor="white", height=300)
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("0% = precio mínimo de la zona · 100% = precio máximo de la zona")
+        st.caption(f"0% = más barato · 100% = más caro entre {tipo_label} similares en {dept_name}")
 
         # Distancias a ciudades principales
         import math
