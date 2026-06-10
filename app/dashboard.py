@@ -35,7 +35,7 @@ st.markdown("""
     .section-title {
         font-size: 1.2rem;
         font-weight: 700;
-        border-left: 4px solid #1a1a1a;
+        border-left: 4px solid #0d9488;
         padding-left: 0.6rem;
         margin: 1.5rem 0 0.8rem 0;
     }
@@ -188,11 +188,11 @@ with tab1:
             height=600,
         )
         fig.update_layout(
-            paper_bgcolor="#f5f0eb",
+            paper_bgcolor="#f0fdfc",
             margin={"r": 0, "t": 40, "l": 0, "b": 0},
             coloraxis_colorbar=dict(title="Precio (€)", tickformat=",.0f"),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="choropleth_map")
     else:
         st.warning("No se pudo cargar el mapa de departamentos. Verifica tu conexión a internet.")
 
@@ -233,7 +233,7 @@ with tab1:
         opacity=0.85,
     )
     fig.update_layout(
-        paper_bgcolor="#f5f0eb",
+        paper_bgcolor="#f0fdfc",
         margin={"r": 0, "t": 40, "l": 0, "b": 0},
         coloraxis_colorbar=dict(
             title="Precio (€)",
@@ -251,9 +251,9 @@ with tab1:
             df_filtrado, x=TARGET, nbins=80,
             title="Distribución del precio (€)",
             labels={TARGET: "Precio (€)"},
-            color_discrete_sequence=["#3b82f6"],
+            color_discrete_sequence=["#0d9488"],
         )
-        fig.update_layout(bargap=0.05, plot_bgcolor="#f8faff", paper_bgcolor="#f8faff")
+        fig.update_layout(bargap=0.05, plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc")
         st.plotly_chart(fig, use_container_width=True)
         st.caption("📊 Cada barra representa un rango de precios. El pico más alto indica el precio más frecuente. La cola larga a la derecha revela la presencia de viviendas muy caras (outliers).")
 
@@ -262,9 +262,9 @@ with tab1:
             df_filtrado, x="property_type_group", y=TARGET,
             title="Precio por tipo de propiedad",
             labels={TARGET: "Precio (€)", "property_type_group": "Tipo"},
-            color_discrete_sequence=["#8b5cf6"],
+            color_discrete_sequence=["#6366f1"],
         )
-        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#fdf8ff", paper_bgcolor="#fdf8ff")
+        fig.update_layout(xaxis_tickangle=-35, plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc")
         st.plotly_chart(fig, use_container_width=True)
         st.caption("📦 La línea central es la mediana. La caja abarca el 50% central de los datos. Los puntos fuera son outliers — viviendas con precios muy alejados de lo habitual.")
 
@@ -289,10 +289,10 @@ with tab1:
         title="Precio mediano por ciudad — Top 20 (mín. 5 viviendas)",
         labels={"precio_mediano": "Precio mediano (€)", "ciudad_provincia": "Ciudad"},
         color="precio_mediano",
-        color_continuous_scale=["#fde68a", "#dc2626"],
+        color_continuous_scale=["#99f6e4", "#0d9488"],
         hover_data={"n": True, "provincia": True, "ciudad_provincia": False},
     )
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-35)
+    fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc", xaxis_tickangle=-35)
     st.plotly_chart(fig, use_container_width=True)
 
     # ── Precio vs Superficie ──────────────────────────────────────────────────
@@ -307,7 +307,7 @@ with tab1:
         labels={"size": "Superficie (m²)", TARGET: "Precio (€)", "property_type_group": "Tipo"},
         opacity=0.5,
     )
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+    fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc")
     st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
@@ -322,11 +322,11 @@ with tab1:
         fig = px.imshow(
             corr,
             text_auto=".2f",
-            color_continuous_scale=["#f5f0eb", "#1a1a1a"],
+            color_continuous_scale=["#f0fdfc", "#0d9488"],
             title="Matriz de correlación",
             aspect="auto",
         )
-        fig.update_layout(paper_bgcolor="#f5f0eb")
+        fig.update_layout(paper_bgcolor="#f0fdfc")
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Valores nulos (en expander, sin filtro) ───────────────────────────────
@@ -344,11 +344,11 @@ with tab1:
                 title="% de valores nulos por columna",
                 labels={"porcentaje": "% nulos", "columna": "Columna"},
                 color="porcentaje",
-                color_continuous_scale=["#e8e0d5", "#e74c3c"],
+                color_continuous_scale=["#f0fdfc", "#6366f1"],
                 text="porcentaje",
             )
             fig.update_traces(texttemplate="%{text}%")
-            fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb")
+            fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc")
             st.plotly_chart(fig, use_container_width=True)
 
     # ── Análisis de listings (en expander, sin filtro) ────────────────────────
@@ -365,11 +365,11 @@ with tab1:
                 top_listings, x="city", y="listings",
                 title="Top 20 ciudades por número de anuncios",
                 labels={"listings": "Nº anuncios", "city": "Ciudad"},
-                color="listings", color_continuous_scale=["#a8c8e8", "#1a5fa8"],
+                color="listings", color_continuous_scale=["#99f6e4", "#0d9488"],
                 text="listings",
             )
             fig.update_traces(texttemplate="%{text}", textposition="outside")
-            fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+            fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc", xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
             st.caption("Ciudades con más anuncios tienen mayor representación — sus precios son más fiables para el modelo.")
 
@@ -384,13 +384,13 @@ with tab1:
             fig = px.bar(
                 proptype_counts, x="property_type", y="listings",
                 color="sparse",
-                color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
+                color_discrete_map={"< 30 (escaso)": "#f59e0b", ">= 30": "#0d9488"},
                 title="Anuncios por tipo de propiedad",
                 labels={"listings": "Nº anuncios", "property_type": "Tipo", "sparse": ""},
                 text="listings",
             )
             fig.update_traces(texttemplate="%{text}", textposition="outside")
-            fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45)
+            fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc", xaxis_tickangle=-45)
             st.plotly_chart(fig, use_container_width=True)
             st.caption("Tipos en naranja tienen menos de 30 anuncios — pueden causar problemas en el modelo.")
 
@@ -405,13 +405,13 @@ with tab1:
         fig = px.bar(
             dept_listings, x="nombre", y="listings",
             color="sparse",
-            color_discrete_map={"< 30 (escaso)": "#e05c1a", ">= 30": "#1a5fa8"},
+            color_discrete_map={"< 30 (escaso)": "#f59e0b", ">= 30": "#0d9488"},
             title="Número de anuncios por departamento",
             labels={"listings": "Nº anuncios", "nombre": "Departamento", "sparse": ""},
             text="listings",
         )
         fig.update_traces(texttemplate="%{text}", textposition="outside")
-        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", xaxis_tickangle=-45, height=450)
+        fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc", xaxis_tickangle=-45, height=450)
         st.plotly_chart(fig, use_container_width=True)
 
         sparse_cities = (
@@ -469,14 +469,14 @@ with tab1:
         fig = px.bar(
             var_df.sort_values("Eta2"), x="Eta2", y="Variable",
             color="Efecto",
-            color_discrete_map={"Grande": "#2ca02c", "Medio": "#ff7f0e", "Pequeno": "#1a5fa8", "Negligible": "#d62728"},
+            color_discrete_map={"Grande": "#0d9488", "Medio": "#6366f1", "Pequeno": "#f59e0b", "Negligible": "#e74c3c"},
             orientation="h",
             title="Top 20 variables por varianza explicada en log(precio)",
             labels={"Eta2": "R2 / eta2", "Variable": "Variable", "Efecto": "Efecto"},
             text="Eta2",
         )
         fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
-        fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", height=550)
+        fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc", height=550)
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -523,7 +523,7 @@ with tab2:
             color_discrete_sequence=["#1a1a1a", "#e8e0d5"],
             title="Split Train / Test",
         )
-        fig.update_layout(paper_bgcolor="#f5f0eb")
+        fig.update_layout(paper_bgcolor="#f0fdfc")
         st.plotly_chart(fig, use_container_width=True)
     with col2:
         n_train = int(len(df) * 0.8)
@@ -612,7 +612,7 @@ with tab3:
     fig.update_layout(
         yaxis_range=[0, 1],
         plot_bgcolor="#f5f0eb",
-        paper_bgcolor="#f5f0eb",
+        paper_bgcolor="#f0fdfc",
         showlegend=False,
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -630,7 +630,7 @@ with tab3:
     fig.add_trace(go.Scatter(
         x=subset["y_real"], y=subset["y_pred"],
         mode="markers",
-        marker=dict(color="#1a1a1a", opacity=0.5, size=5),
+        marker=dict(color="#0d9488", opacity=0.6, size=5),
         name="Predicciones",
     ))
     max_val = max(subset["y_real"].max(), subset["y_pred"].max())
@@ -645,7 +645,7 @@ with tab3:
         xaxis_title="Precio real (€)",
         yaxis_title="Precio predicho (€)",
         plot_bgcolor="#f5f0eb",
-        paper_bgcolor="#f5f0eb",
+        paper_bgcolor="#f0fdfc",
     )
     st.plotly_chart(fig, use_container_width=True)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -701,14 +701,14 @@ with tab4:
         top_cities_data.sort_values("diferencial_pct"),
         x="diferencial_pct", y="city",
         color="clasificacion",
-        color_discrete_map={"Tendencial": "#1a1a1a", "Atípica": "#e74c3c"},
+        color_discrete_map={"Tendencial": "#0d9488", "Atípica": "#e74c3c"},
         orientation="h",
         title=f"Diferencial precio real vs predicho — Top {top_n} ciudades",
         labels={"diferencial_pct": "Diferencial (%)", "city": "Ciudad", "clasificacion": "Clasificación"},
     )
-    fig.add_vline(x=mean_diff + umbral, line_dash="dash", line_color="#e74c3c", annotation_text="IC 95%+")
-    fig.add_vline(x=mean_diff - umbral, line_dash="dash", line_color="#e74c3c", annotation_text="IC 95%-")
-    fig.update_layout(plot_bgcolor="#f5f0eb", paper_bgcolor="#f5f0eb", height=600)
+    fig.add_vline(x=mean_diff + umbral, line_dash="dash", line_color="#6366f1", annotation_text="IC 95%+")
+    fig.add_vline(x=mean_diff - umbral, line_dash="dash", line_color="#6366f1", annotation_text="IC 95%-")
+    fig.update_layout(plot_bgcolor="#f0fdfc", paper_bgcolor="#f0fdfc", height=600)
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown('<div class="section-title">Zonas atípicas detectadas</div>', unsafe_allow_html=True)
@@ -867,7 +867,7 @@ with tab5:
             title={"text": f"Posición relativa en {dept_name}"},
             gauge={
                 "axis":  {"range": [0, 100], "ticksuffix": "%"},
-                "bar":   {"color": "#1a1a1a"},
+                "bar":   {"color": "#0d9488"},
                 "steps": [
                     {"range": [0,  33],  "color": "#2ca02c"},
                     {"range": [33, 66],  "color": "#ff7f0e"},
@@ -876,7 +876,7 @@ with tab5:
             },
             number={"suffix": "%", "font": {"size": 28}},
         ))
-        fig.update_layout(paper_bgcolor="#f5f0eb", height=300)
+        fig.update_layout(paper_bgcolor="#f0fdfc", height=300)
         st.plotly_chart(fig, use_container_width=True)
         st.caption("0% = precio mínimo de la zona · 100% = precio máximo de la zona")
 
@@ -895,7 +895,7 @@ with tab5:
         )
         fig_map.update_traces(marker=dict(size=15))
         fig_map.update_layout(
-            paper_bgcolor="#f5f0eb",
+            paper_bgcolor="#f0fdfc",
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
         )
         st.plotly_chart(fig_map, use_container_width=True)
