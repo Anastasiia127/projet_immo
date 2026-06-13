@@ -396,7 +396,7 @@ with tab1:
 
     # ── Valores nulos ─────────────────────────────────────────────────────────
     with st.expander("🕳️ Valores nulos por columna"):
-        st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 70% (floor, land_size, exposition) se excluyen directamente. El resto se imputa con la mediana o la moda.")
+        st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 50% (floor, land_size, ghg_value, ghg_category, exposition) se excluyen directamente. Las filas con nulos restantes se eliminan, sin imputación.")
         nulls = df.isnull().sum().reset_index()
         nulls.columns = ["columna", "nulos"]
         nulls["porcentaje"] = (nulls["nulos"] / len(df) * 100).round(1)
