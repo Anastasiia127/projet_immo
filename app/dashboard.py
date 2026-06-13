@@ -697,8 +697,8 @@ with tab2:
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # TAB 3 · MODELOS
-# Comparativa del rendimiento de los cuatro modelos entrenados:
-# Ridge, MLP, Random Forest y XGBoost. Muestra métricas (RMSE, MAE, R²)
+# Comparativa del rendimiento de los tres modelos entrenados:
+# MLP, Random Forest y XGBoost. Muestra métricas (RMSE, MAE, R²)
 # y el gráfico interactivo de Predicción vs Realidad para cada uno.
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -715,9 +715,13 @@ with tab3:
     # ── Sección 1: Estado de carga ────────────────────────────────────────────
     # Muestra un indicador por modelo: ✅ si tiene .pkl y métricas,
     # ⚠️ si tiene .pkl pero le faltan métricas, ⏳ si aún no está entrenado.
+    # Se filtran los modelos del dashboard (MLP, RF, XGBoost); Ridge se excluye
+    # de la visualización porque no tiene archivo .pkl exportado.
     st.markdown('<div class="section-title">Estado de los modelos</div>', unsafe_allow_html=True)
-    cols = st.columns(4)
-    for i, (name, status) in enumerate(model_status.items()):
+    MODELOS_DISPLAY = ["MLP", "Random Forest", "XGBoost"]
+    cols = st.columns(3)
+    for i, name in enumerate(MODELOS_DISPLAY):
+        status = model_status.get(name, {"pkl": False, "metrics": False})
         with cols[i]:
             if status["pkl"] and status["metrics"]:
                 st.metric(name, "✅ Completo")
@@ -734,7 +738,7 @@ with tab3:
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
-    for name in ["Ridge", "MLP", "Random Forest", "XGBoost"]:
+    for name in MODELOS_DISPLAY:
         m = get_metrics(name)
         metrics_data.append({
             "Modelo": name,
@@ -748,20 +752,18 @@ with tab3:
     # ── Sección 3: Gráfico de barras comparativo de R² ────────────────────────
     # R² (coeficiente de determinación): proporción de la varianza del precio
     # explicada por el modelo. Rango [0, 1]; cuanto más cercano a 1, mejor.
-    # XGBoost lidera con R²=0.82, seguido de Random Forest (0.74), MLP (0.65)
-    # y Ridge (0.47). La diferencia entre Ridge y los modelos de árboles
-    # evidencia que las relaciones entre variables NO son lineales.
+    # XGBoost lidera con R²=0.82, seguido de Random Forest (0.74) y MLP (0.65).
     st.markdown('<div class="section-title">Comparación de R²</div>', unsafe_allow_html=True)
 
     r2_data = pd.DataFrame([
         {"Modelo": name, "R²": get_metrics(name)["R2"]}
-        for name in ["Ridge", "MLP", "Random Forest", "XGBoost"]
+        for name in MODELOS_DISPLAY
     ])
     fig = px.bar(
         r2_data, x="Modelo", y="R²",
         title="R² por modelo (mayor es mejor · máximo = 1.0)",
         color="Modelo",
-        color_discrete_sequence=["#cbd5e1", "#aaa", "#888", "#1a1a1a"],
+        color_discrete_sequence=["#aaa", "#888", "#1a1a1a"],
         text="R²",
     )
     fig.update_traces(texttemplate="%{text:.2f}")
@@ -781,7 +783,7 @@ with tab3:
     # get_predictions() carga el CSV predictions_<modelo>.csv o genera datos demo.
     st.markdown('<div class="section-title">Predicción vs Realidad</div>', unsafe_allow_html=True)
 
-    model_sel = st.selectbox("Selecciona modelo", ["Ridge", "MLP", "Random Forest", "XGBoost"])
+    model_sel = st.selectbox("Selecciona modelo", MODELOS_DISPLAY)
     subset = get_predictions(model_sel)
     is_real = (OUTPUTS_PATH / PREDICTIONS_FILES.get(model_sel, "")).exists()
 
