@@ -805,7 +805,7 @@ with tab3:
     )
     fig.update_traces(
         texttemplate="%{text:.2f}",
-        textfont=dict(size=16, color="white", family="Segoe UI, sans-serif"),
+        textfont=dict(size=20, color="white", family="Segoe UI, sans-serif", weight="bold"),
         textposition="inside",
     )
     fig.update_layout(
