@@ -12,6 +12,12 @@ App interactiva para predecir el precio de viviendas en Francia a partir de sus 
 
 ---
 
+## Demo
+
+[ouipredict.streamlit.app](https://ouipredict.streamlit.app/)
+
+---
+
 ## Ejecutar
 
 ```bash
