@@ -654,45 +654,130 @@ with tab2:
     )
 
     # ── Sección 4: Esquema del pipeline ───────────────────────────────────────
-    # Representación visual en ASCII del flujo completo de preparación de datos,
-    # desde la lectura del Excel hasta la entrada al modelo.
-    # Cada función corresponde a un módulo en src/preprocessing.py.
+    # Representación visual HTML del flujo completo de preparación de datos.
+    # Cada bloque corresponde a una función en src/preprocessing.py.
     st.markdown('<div class="section-title">Pipeline de preprocesamiento</div>', unsafe_allow_html=True)
 
     st.markdown("""
-    ```
-    dataset_corregido.xlsx
-            │
-            ▼
-    load_data()              ← Lee el Excel con pandas
-            │
-            ▼
-    clean_data()             ← Agrupa property_type (3 grupos) · Elimina outliers precio (p99)
-                               Filtra size [10–5.000 m²] · Elimina nb_bedrooms > nb_rooms
-                               Elimina columnas con >50% nulos · Elimina filas con nulos restantes
-            │
-            ▼
-    feature_engineering()    ← log_size = log(1+size) · log1p(price) como target
-                               Extrae departamento del código postal
-                               Crea has_energy_cert (0/1)
-                               Calcula distancias haversine a 8 ciudades + dist_min_ciudad
-            │
-            ▼
-    compute_price_per_m2()   ← Añade columna €/m²
-            │
-            ▼
-    get_features_and_target() ← Separa X (features) e y (log1p_price)
-            │
-            ▼
-    train_test_split()       ← 80% train / 20% test · random_state=42
-            │
-            ▼
-    cross_val_score()        ← 10-fold CV sobre train (Random Forest)
-            │
-            ▼
-        Modelo               ← Predicciones invertidas con expm1() → precio en €
-    ```
-    """)
+    <style>
+    .pl-wrap { font-family: "Segoe UI", sans-serif; padding: 0.5rem 0 1rem 0; }
+    .pl-step { display: flex; align-items: flex-start; gap: 1.2rem; }
+    .pl-box {
+        border-radius: 8px; padding: 0.45rem 1rem; font-weight: 700;
+        font-size: 0.88rem; min-width: 210px; max-width: 210px;
+        text-align: center; border: 2px solid; white-space: nowrap;
+        line-height: 1.4;
+    }
+    .pl-desc {
+        display: flex; flex-wrap: wrap; align-items: center;
+        gap: 0.3rem; padding-top: 0.4rem;
+    }
+    .pl-tag {
+        display: inline-block; border-radius: 5px; padding: 0.15rem 0.55rem;
+        font-size: 0.78rem; font-weight: 500; white-space: nowrap;
+    }
+    .pl-arrow { margin-left: 105px; color: #94a3b8; line-height: 0.9;
+                font-size: 1.05rem; padding: 1px 0; }
+    /* colores por tipo */
+    .c-src  { background:#dbeafe; border-color:#3b82f6; color:#1d4ed8; }
+    .c-load { background:#f1f5f9; border-color:#94a3b8; color:#334155; }
+    .c-cln  { background:#fff7ed; border-color:#f97316; color:#c2410c; }
+    .c-eng  { background:#faf5ff; border-color:#a855f7; color:#7e22ce; }
+    .c-ml   { background:#f0fdfa; border-color:#0d9488; color:#0f766e; }
+    .t-cln  { background:#fff7ed; color:#c2410c; border:1px solid #fdba74; }
+    .t-eng  { background:#faf5ff; color:#7e22ce; border:1px solid #d8b4fe; }
+    .t-ml   { background:#f0fdfa; color:#0f766e; border:1px solid #5eead4; }
+    .t-gray { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
+    </style>
+
+    <div class="pl-wrap">
+
+      <div class="pl-step">
+        <div class="pl-box c-src">📁 dataset_corregido.xlsx</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-gray">Fuente de datos original</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-load">load_data()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-gray">Lee el Excel con pandas</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-cln">clean_data()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-cln">Agrupa property_type → 3 grupos</span>
+          <span class="pl-tag t-cln">Elimina outliers precio (p99)</span>
+          <span class="pl-tag t-cln">Filtra size [10–5.000 m²]</span>
+          <span class="pl-tag t-cln">Elimina nb_bedrooms &gt; nb_rooms</span>
+          <span class="pl-tag t-cln">Excluye columnas con &gt;50% nulos</span>
+          <span class="pl-tag t-cln">Elimina filas con nulos restantes</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-eng">feature_engineering()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-eng">log_size = log(1 + size)</span>
+          <span class="pl-tag t-eng">log1p(price) como target</span>
+          <span class="pl-tag t-eng">Departamento ← código postal</span>
+          <span class="pl-tag t-eng">has_energy_cert (0/1)</span>
+          <span class="pl-tag t-eng">Distancias haversine a 8 ciudades</span>
+          <span class="pl-tag t-eng">dist_min_ciudad</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-load">compute_price_per_m2()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-gray">Añade columna €/m²</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-ml">get_features_and_target()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-ml">Separa X (features) e y (log1p_price)</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-ml">train_test_split()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-ml">80% entrenamiento · 20% test</span>
+          <span class="pl-tag t-ml">random_state = 42</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-ml">cross_val_score()</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-ml">10-fold CV sobre train</span>
+          <span class="pl-tag t-gray">solo Random Forest</span>
+        </div>
+      </div>
+      <div class="pl-arrow">│<br>▼</div>
+
+      <div class="pl-step">
+        <div class="pl-box c-ml">🤖 Modelo</div>
+        <div class="pl-desc">
+          <span class="pl-tag t-ml">Predicciones invertidas con expm1()</span>
+          <span class="pl-tag t-ml">→ precio final en €</span>
+        </div>
+      </div>
+
+    </div>
+    """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
@@ -1155,7 +1240,7 @@ with tab5:
             title={"text": f"Posición relativa entre viviendas similares en {dept_name}"},
             gauge={
                 "axis":  {"range": [0, 100], "ticksuffix": "%"},
-                "bar":   {"color": "#000000"},
+                "bar":   {"color": "#0d9488"},
                 "steps": [
                     {"range": [0,  33],  "color": "#2ca02c"},
                     {"range": [33, 66],  "color": "#ff7f0e"},
