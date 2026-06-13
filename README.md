@@ -1,111 +1,41 @@
-# Entre Tendencias y Anomalías
-### Análisis del Precio de la Vivienda en Francia mediante Datos
+```markdown
+# OuiPredict — Predicción de precios de vivienda en Francia
 
-**Proyecto I — Grado en Inteligencia Artificial**  
-**Universitat Politècnica de València · 2026**
-
-**Autores:** David Esteban Platero · Vicente Emilio Tralci Sindoni · Laura Muñoz Martínez · Lidia Martínez Bañuls · Anastasiia Nogina
+**Proyecto I · IA · UPV 2026**  
+David Esteban Platero · Vicente Tralci Sindoni · Laura Muñoz · Lidia Martínez · Anastasiia Nogina
 
 ---
 
-## Descripción
+## Qué es
 
-Sistema de análisis y predicción del precio de viviendas en Francia (€/m²) basado en un dataset de 37.368 propiedades. El proyecto incluye exploración de datos, entrenamiento de modelos predictivos y detección de anomalías por zona geográfica.
-
----
-
-## Estructura del repositorio
-
-```
-projet_immo/
-│
-├── app/
-│   └── dashboard.py          # Dashboard interactivo (Streamlit)
-│
-├── src/
-│   ├── preprocessing.py      # Carga y limpieza del dataset
-│   └── model_loader.py       # Carga de modelos entrenados (.pkl)
-│
-├── data/
-│   └── dataset_corregido.xlsx  # Dataset original (no incluido en el repo)
-│
-├── models/
-│   └── *.pkl                 # Modelos entrenados (generados por el equipo)
-│
-├── outputs/
-│   └── *.csv                 # Resultados exportados
-│
-├── .streamlit/
-│   └── config.toml           # Configuración visual del dashboard
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
+App interactiva para predecir el precio de viviendas en Francia a partir de sus características, con detección de zonas con precios anómalos. Dataset de 37.368 propiedades.
 
 ---
 
-## Cómo ejecutar el proyecto
+## Ejecutar
 
-### Paso 1 — Clonar el repositorio
 ```bash
 git clone https://github.com/Anastasiia127/projet_immo.git
 cd projet_immo
-```
-
-### Paso 2 — Instalar dependencias
-```bash
 pip install -r requirements.txt
-```
-> Si `pip` no funciona, usar: `python -m pip install -r requirements.txt`
-
-### Paso 3 — Añadir el dataset
-Copiar manualmente el archivo `dataset_corregido.xlsx` dentro de la carpeta `data/`.  
-El archivo no está en el repositorio por su tamaño.
-
-### Paso 4 — Lanzar el dashboard
-```bash
 python -m streamlit run app/dashboard.py
 ```
-Se abrirá automáticamente en el navegador en `http://localhost:8501`
+
+> Añadir manualmente `dataset_corregido.xlsx` en la carpeta `data/` (no incluido por tamaño).
 
 ---
 
-## Cómo conectar los modelos entrenados
+## Modelos
 
-Cuando los modelos estén entrenados, guardarlos así desde el notebook:
-
-```python
-import joblib
-
-joblib.dump(modelo, 'models/linear_regression.pkl')
-joblib.dump(modelo, 'models/random_forest.pkl')
-joblib.dump(modelo, 'models/mlp.pkl')
-```
-
-El dashboard los detecta automáticamente al arrancar.
-
----
-
-## Modelos implementados
-
-| Modelo | Archivo esperado |
-|---|---|
-| Regresión Lineal (Ridge) | `models/linear_regression.pkl` |
+| Modelo | Archivo |
+|--------|---------|
 | Random Forest | `models/random_forest.pkl` |
-| MLP (Red Neuronal) | `models/mlp.pkl` |
+| MLP | `models/mlp.pkl` |
+| XGBoost | `models/xgboost.pkl` |
 
 ---
 
-## Métricas de evaluación
+## Stack
 
-- **RMSE** — Error cuadrático medio
-- **MAE** — Error absoluto medio  
-- **R²** — Coeficiente de determinación
-
----
-
-## Tecnologías
-
-- Python 3.10+
-- Streamlit · Plotly · Pandas · Scikit-learn · Scipy
+Python 3.10 · Streamlit · Plotly · Pandas · Scikit-learn
+```
