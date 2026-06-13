@@ -789,7 +789,7 @@ with tab3:
         })
     st.dataframe(pd.DataFrame(metrics_data), use_container_width=True, hide_index=True)
 
-    # Comparativa de R² entre modelos (0 = peor, 1 = perfecto).
+    # Comparativa de R² entre modelos
     st.markdown('<div class="section-title">Comparación de R²</div>', unsafe_allow_html=True)
 
     r2_data = pd.DataFrame([
@@ -800,7 +800,7 @@ with tab3:
         r2_data, x="Modelo", y="R²",
         title="R² por modelo (mayor es mejor · máximo = 1.0)",
         color="Modelo",
-        color_discrete_sequence=["#aaa", "#888", "#1a1a1a"],
+        color_discrete_sequence=["#aaa", "#888", "#1a1a1a", "#555"],
         text="R²",
     )
     fig.update_traces(texttemplate="%{text:.2f}")
