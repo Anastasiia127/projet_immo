@@ -37,5 +37,5 @@ python -m streamlit run app/dashboard.py
 
 ## Stack
 
-Python 3.10 · Streamlit · Plotly · Pandas · Scikit-learn
+Python 3.10 · Streamlit · Plotly · Pandas · Scikit-learn · XGBoost · NumPy · SciPy
 ```
