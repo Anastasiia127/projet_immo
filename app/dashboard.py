@@ -562,20 +562,10 @@ with tab1:
     fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=550)
     st.plotly_chart(fig, use_container_width=True)
 
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# TAB 2 · PREPROCESAMIENTO
-# Documenta el pipeline de preparación de datos aplicado antes del entrenamiento.
-# Muestra las variables utilizadas por los modelos, el tratamiento de nulos,
-# la división train/test y el esquema general del pipeline.
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
+# ── TAB 2 · PREPROCESAMIENTO ──────────────────────────────────────────────────
 with tab2:
-    # ── Sección 1: Variables del modelo ───────────────────────────────────────
-    # Lista las features importadas desde src/preprocessing.py divididas en tres
-    # grupos: numéricas (escalares continuas), binarias (flags 0/1) y categóricas
-    # (codificadas como enteros en el entrenamiento).
-    # El ✅/❌ indica si la columna existe en el df cargado en tiempo de ejecución.
+    # Variables del modelo divididas en numéricas, binarias y categóricas.
+    # ✅/❌ indica si la columna existe en el df cargado.
     st.markdown('<div class="section-title">Variables utilizadas en los modelos</div>', unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
@@ -595,14 +585,7 @@ with tab2:
             available = "✅" if f in df.columns else "❌"
             st.markdown(f"{available} `{f}`")
 
-    # ── Sección 2: Tratamiento de valores nulos ────────────────────────────────
-    # Tabla resumen de las estrategias aplicadas por tipo de variable.
-    # Las columnas con alta tasa de nulos (floor, land_size, ghg_value,
-    # ghg_category, exposition) se eliminan directamente del análisis.
-    # Para energy_performance_category se crea la variable binaria has_energy_cert
-    # en lugar de imputar, preservando la señal de ausencia de información.
-    # Las filas con nulos restantes se eliminan (sin imputación) para no introducir
-    # sesgos artificiales en el entrenamiento.
+    # Estrategia aplicada a cada tipo de variable con nulos.
     st.markdown('<div class="section-title">Tratamiento de valores nulos</div>', unsafe_allow_html=True)
 
     tratamiento = pd.DataFrame([
@@ -613,11 +596,7 @@ with tab2:
     ])
     st.dataframe(tratamiento, use_container_width=True, hide_index=True)
 
-    # ── Sección 3: División train / test ──────────────────────────────────────
-    # Partición hold-out estándar: 80% entrenamiento, 20% test.
-    # random_state=42 garantiza reproducibilidad entre ejecuciones.
-    # El conjunto de test NO se utiliza durante el ajuste de hiperparámetros;
-    # solo se evalúa al final para obtener las métricas definitivas.
+    # División hold-out 80/20 con random_state=42.
     st.markdown('<div class="section-title">División de datos</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
@@ -642,9 +621,7 @@ with tab2:
         st.markdown(f"- Filas entrenamiento: **{n_train:,}**".replace(",", "."))
         st.markdown(f"- Filas validación: **{n_test:,}**".replace(",", "."))
 
-    # Nota especial sobre la validación cruzada de Random Forest:
-    # además del split hold-out, RF usa 10-fold CV sobre el conjunto de
-    # entrenamiento para obtener un R² más estable, sin tocar el test set.
+    # Random Forest usa además 10-fold CV sobre train para un R² más robusto.
     st.info(
         "**Random Forest** utiliza adicionalmente **validación cruzada de 10 folds** (10-fold cross-validation) "
         "sobre el conjunto de entrenamiento para obtener una estimación más robusta del R². "
@@ -653,9 +630,7 @@ with tab2:
         icon="ℹ️"
     )
 
-    # ── Sección 4: Esquema del pipeline ───────────────────────────────────────
-    # Representación visual HTML del flujo completo de preparación de datos.
-    # Cada bloque corresponde a una función en src/preprocessing.py.
+    # Diagrama visual del flujo de preparación de datos.
     st.markdown('<div class="section-title">Pipeline de preprocesamiento</div>', unsafe_allow_html=True)
 
     st.markdown("""
@@ -779,29 +754,13 @@ with tab2:
     </div>
     """, unsafe_allow_html=True)
 
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# TAB 3 · MODELOS
-# Comparativa del rendimiento de los tres modelos entrenados:
-# MLP, Random Forest y XGBoost. Muestra métricas (RMSE, MAE, R²)
-# y el gráfico interactivo de Predicción vs Realidad para cada uno.
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
+# ── TAB 3 · MODELOS ───────────────────────────────────────────────────────────
 with tab3:
-    # ── Carga del estado de todos los modelos ─────────────────────────────────
-    # get_model_status() comprueba en OUTPUTS_PATH si existen el .pkl (modelo
-    # serializado) y el archivo de métricas CSV para cada modelo.
-    # demo_mode = True cuando no hay ningún modelo entrenado disponible:
-    # en ese caso se muestran datos ficticios para ilustrar la interfaz.
+    # Carga estado de modelos: ✅ pkl+métricas · ⚠️ solo pkl · ⏳ sin entrenar
     model_status = get_model_status()
     available    = get_available_models()
     demo_mode    = len(available) == 0
 
-    # ── Sección 1: Estado de carga ────────────────────────────────────────────
-    # Muestra un indicador por modelo: ✅ si tiene .pkl y métricas,
-    # ⚠️ si tiene .pkl pero le faltan métricas, ⏳ si aún no está entrenado.
-    # Se filtran los modelos del dashboard (MLP, RF, XGBoost); Ridge se excluye
-    # de la visualización porque no tiene archivo .pkl exportado.
     st.markdown('<div class="section-title">Estado de los modelos</div>', unsafe_allow_html=True)
     MODELOS_DISPLAY = ["MLP", "Random Forest", "XGBoost"]
     cols = st.columns(3)
@@ -815,11 +774,7 @@ with tab3:
             else:
                 st.metric(name, "⏳ Pendiente")
 
-    # ── Sección 2: Tabla de métricas ──────────────────────────────────────────
-    # Se cargan las métricas de evaluación sobre el conjunto de test (20%).
-    # get_metrics() devuelve los valores reales si existe el CSV correspondiente
-    # en OUTPUTS_PATH, o valores de demo en caso contrario.
-    # La columna "Fuente" indica si los datos son reales o simulados.
+    # Métricas sobre el conjunto de test (20%). "Demo" si no hay archivo real.
     st.markdown('<div class="section-title">Métricas de evaluación</div>', unsafe_allow_html=True)
 
     metrics_data = []
@@ -834,10 +789,7 @@ with tab3:
         })
     st.dataframe(pd.DataFrame(metrics_data), use_container_width=True, hide_index=True)
 
-    # ── Sección 3: Gráfico de barras comparativo de R² ────────────────────────
-    # R² (coeficiente de determinación): proporción de la varianza del precio
-    # explicada por el modelo. Rango [0, 1]; cuanto más cercano a 1, mejor.
-    # XGBoost lidera con R²=0.82, seguido de Random Forest (0.74) y MLP (0.65).
+    # Comparativa de R² entre modelos (0 = peor, 1 = perfecto).
     st.markdown('<div class="section-title">Comparación de R²</div>', unsafe_allow_html=True)
 
     r2_data = pd.DataFrame([
@@ -860,12 +812,7 @@ with tab3:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Sección 4: Scatter Predicción vs Realidad ─────────────────────────────
-    # Gráfico interactivo que muestra la nube de puntos (precio_real, precio_predicho)
-    # para el modelo seleccionado. La línea roja discontinua representa la predicción
-    # perfecta (y_pred = y_real); cuanto más cerca estén los puntos de esa línea,
-    # mejor es el modelo. La dispersión vertical en un mismo x indica el error.
-    # get_predictions() carga el CSV predictions_<modelo>.csv o genera datos demo.
+    # Scatter precio real vs predicho. Cuanto más cerca de la línea roja, mejor.
     st.markdown('<div class="section-title">Predicción vs Realidad</div>', unsafe_allow_html=True)
 
     model_sel = st.selectbox("Selecciona modelo", MODELOS_DISPLAY)
@@ -876,14 +823,14 @@ with tab3:
         st.caption("*Gráfico generado con datos ficticios. Ejecuta los scripts de entrenamiento para ver predicciones reales.*")
 
     fig = go.Figure()
-    # Nube de puntos: cada punto es una vivienda del conjunto de test
+    # Puntos del conjunto de test
     fig.add_trace(go.Scatter(
         x=subset["y_real"], y=subset["y_pred"],
         mode="markers",
         marker=dict(color="#0d9488", opacity=0.6, size=5),
         name="Predicciones",
     ))
-    # Línea de predicción perfecta (y = x) como referencia visual
+    # Línea de predicción perfecta (y = x)
     max_val = max(subset["y_real"].max(), subset["y_pred"].max())
     fig.add_trace(go.Scatter(
         x=[0, max_val], y=[0, max_val],
@@ -900,11 +847,7 @@ with tab3:
     )
     st.plotly_chart(fig, use_container_width=True)
     
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# TAB 4 · ANOMALÍAS
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
+# ── TAB 4 · ANOMALÍAS ─────────────────────────────────────────────────────────
 with tab4:
     st.markdown('<div class="section-title">Análisis de anomalías por zona</div>', unsafe_allow_html=True)
 
@@ -914,11 +857,11 @@ with tab4:
         icon="ℹ️"
     )
 
-    # ── Cargar predicciones reales de XGBoost ─────────────────────────────────
+    # Carga predicciones reales de XGBoost; si no existen, usa datos simulados.
     pred_path = OUTPUTS_PATH / "predictions_xgb.csv"
     if pred_path.exists() and "dept" in pd.read_csv(pred_path, nrows=1).columns:
         preds_df = pd.read_csv(pred_path)
-        # ── Agrupar por departamento ──────────────────────────────────────────
+        # Agrega por departamento: mediana real, mediana predicha, n viviendas
         dept_stats = (
             preds_df.groupby("dept")
             .agg(
@@ -997,11 +940,7 @@ with tab4:
     atipicos.columns = ["Departamento", "Precio real mediano (€)", "Precio predicho (XGBoost) (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicos, use_container_width=True, hide_index=True)
     
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# TAB 5 · PREDICTOR DE PRECIO
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
+# ── TAB 5 · PREDICTOR DE PRECIO ───────────────────────────────────────────────
 
 with tab5:
     st.markdown('<div class="section-title">Predictor de precio de vivienda</div>', unsafe_allow_html=True)
@@ -1014,7 +953,7 @@ with tab5:
 
     st.markdown("Introduce las caracteristicas de la vivienda para obtener una estimacion del precio.")
 
-    # ── Descripciones y métricas de modelos ───────────────────────────────────
+    # Descripciones de cada modelo para mostrar al usuario
     MODEL_DESCRIPTIONS = {
         "XGBoost":       ("XGBoost — árboles de decisión encadenados",        "Combina cientos de árboles simples aprendiendo de sus errores. Muy preciso con datos tabulares."),
         "Random Forest": ("Random Forest — bosque de árboles independientes",  "Entrena muchos árboles en paralelo y promedia sus predicciones. Robusto y estable."),
@@ -1022,7 +961,7 @@ with tab5:
         "Estimación estadística": ("Estimación estadística — mediana del mercado", "Sin IA: usa la mediana de precios de viviendas similares en la zona. Referencia básica."),
     }
 
-    # ── Ordenar por R² ────────────────────────────────────────────────────────
+    # Ordena modelos por R² descendente; estimación estadística siempre al final
     def get_r2(name):
         if name == "Estimación estadística":
             return -1
@@ -1054,7 +993,7 @@ with tab5:
 
     with col1:
         st.markdown("**Ubicacion**")
-        # ── Ciudades importantes primero ──────────────────────────────────────
+        # Departamentos prioritarios (grandes ciudades) aparecen primero
         PRIORITY_DEPTS = ["75", "69", "13", "33", "06"]  # París, Lyon, Marsella, Burdeos, Niza
         all_depts = sorted(df["provincia"].dropna().unique().tolist())
         other_depts = [p for p in all_depts if p not in PRIORITY_DEPTS]
@@ -1139,7 +1078,7 @@ with tab5:
         if dept == "ALL":
             dept_lat = df["approximate_latitude"].median()
             dept_lon = df["approximate_longitude"].median()
-            dept     = df["provincia"].mode()[0]  # ── usar departamento más común para el modelo
+            dept     = df["provincia"].mode()[0]  # departamento más frecuente como fallback
         else:
             dept_lat = df[df["provincia"] == dept]["approximate_latitude"].median()
             dept_lon = df[df["provincia"] == dept]["approximate_longitude"].median()
@@ -1195,8 +1134,7 @@ with tab5:
         precio_m2  = precio_pred / size_sel
         dept_name  = "Toda Francia" if provincia_sel == "ALL" else DEPT_NOMBRES.get(provincia_sel, provincia_sel)
 
-        # ── Filtrar viviendas similares: mismo tipo, mismo departamento ─────── 
-        # ── superficie ±20% ─────────────────────────────────────────────────── 
+        # Viviendas similares: mismo tipo, mismo dpto, superficie ±20%
         size_min = size_sel * 0.8
         size_max = size_sel * 1.2
 
@@ -1240,7 +1178,7 @@ with tab5:
             title={"text": f"Posición relativa entre viviendas similares en {dept_name}"},
             gauge={
                 "axis":  {"range": [0, 100], "ticksuffix": "%"},
-                "bar":   {"color": "#0d9488"},
+                "bar":   {"color": "#000000"},
                 "steps": [
                     {"range": [0,  33],  "color": "#2ca02c"},
                     {"range": [33, 66],  "color": "#ff7f0e"},
@@ -1253,8 +1191,7 @@ with tab5:
         st.plotly_chart(fig, use_container_width=True)
         st.caption(f"0% = más barato · 100% = más caro entre {tipo_label} similares en {dept_name}")
 
-        # ── Distancias a ciudades principales ─────────────────────────────────
-
+        # Distancias al centroide del departamento seleccionado
         def haversine_simple(lat1, lon1, lat2, lon2):
             R = 6371
             dlat = math.radians(lat2 - lat1)
@@ -1277,7 +1214,7 @@ with tab5:
         for i, (ciudad, km) in enumerate(dists_display.items()):
             dist_cols[i].metric(ciudad, f"{km} km")
 
-        # ── Mini mapa con la ubicación seleccionada ───────────────────────────
+        # Mini mapa con la ubicación del departamento
         st.markdown(f"**📍 Ubicación: {dept_name}**")
         dept_df = pd.DataFrame([{"lat": dept_lat, "lon": dept_lon, "name": dept_name}])
         fig_map = px.scatter_mapbox(
