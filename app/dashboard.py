@@ -800,15 +800,21 @@ with tab3:
         r2_data, x="Modelo", y="R²",
         title="R² por modelo (mayor es mejor · máximo = 1.0)",
         color="Modelo",
-        color_discrete_sequence=["#aaa", "#888", "#1a1a1a", "#555"],
+        color_discrete_sequence=["#5eead4", "#0d9488", "#0f766e"],
         text="R²",
     )
-    fig.update_traces(texttemplate="%{text:.2f}")
+    fig.update_traces(
+        texttemplate="%{text:.2f}",
+        textfont=dict(size=16, color="white", family="Segoe UI, sans-serif"),
+        textposition="inside",
+    )
     fig.update_layout(
         yaxis_range=[0, 1],
         plot_bgcolor="#f5f0eb",
         paper_bgcolor="white",
         showlegend=False,
+        title_font=dict(size=14, family="Segoe UI, sans-serif"),
+        font=dict(family="Segoe UI, sans-serif"),
     )
     st.plotly_chart(fig, use_container_width=True)
 
