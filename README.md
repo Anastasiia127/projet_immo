@@ -21,10 +21,6 @@ pip install -r requirements.txt
 python -m streamlit run app/dashboard.py
 ```
 
-> Añadir manualmente `dataset_corregido.xlsx` en la carpeta `data/` (no incluido por tamaño).
-
----
-
 ## Modelos
 
 | Modelo | Archivo |
