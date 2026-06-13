@@ -1046,8 +1046,7 @@ with tab5:
                                             help="Cuenta todas las piezas habitables: salón, dormitorios, etc.")
             bedrooms_sel  = st.number_input("Nº de dormitorios", min_value=0, max_value=15, value=2,
                                             help="Solo dormitorios. 0 = estudio/loft.")
-            bathrooms_sel = st.number_input("Nº de baños/aseos", min_value=1, max_value=10, value=1,
-                                            help="Incluye baños completos y aseos.")
+            bathrooms_sel = 0
 
     with col3:
         st.markdown("**Extras**")
@@ -1072,7 +1071,7 @@ with tab5:
     dept_display = format_dept(provincia_sel)
     
     if tipo_sel not in ["terreno", "local_comercial"]:
-        st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {rooms_sel} piezas · {bedrooms_sel} dorm. · {bathrooms_sel} baños · {extras_txt} · {energy_txt} · 📍 {dept_display}")
+        st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {rooms_sel} piezas · {bedrooms_sel} dorm. · {extras_txt} · {energy_txt} · 📍 {dept_display}")
     else:
         st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {extras_txt} · 📍 {dept_display}")
 
