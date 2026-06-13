@@ -1155,7 +1155,7 @@ with tab5:
             title={"text": f"Posición relativa entre viviendas similares en {dept_name}"},
             gauge={
                 "axis":  {"range": [0, 100], "ticksuffix": "%"},
-                "bar":   {"color": "#0d9488"},
+                "bar":   {"color": "#000000"},
                 "steps": [
                     {"range": [0,  33],  "color": "#2ca02c"},
                     {"range": [33, 66],  "color": "#ff7f0e"},
