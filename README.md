@@ -1,4 +1,4 @@
-```markdown
+
 # OuiPredict — Predicción de precios de vivienda en Francia
 
 **Proyecto I · IA · UPV 2026**  
