@@ -686,13 +686,12 @@ with tab2:
       <div class="pl-step">
         <div class="pl-box c-cln">clean_data()</div>
         <div class="pl-desc">
-          <span class="pl-tag t-cln" title="Reducimos 22 tipos originales a 3 grupos manejables: apartamento, casa y lujo">Agrupa property_type → 3 grupos</span>
-          <span class="pl-tag t-cln" title="Eliminamos el 1% más caro para que casos extremos no distorsionen el modelo">Elimina outliers precio (p99)</span>
-          <span class="pl-tag t-cln" title="Filtramos viviendas con precio/m² entre 300 y 20.000 € — fuera de ese rango son errores de datos">Filtra precio/m² [300–20.000 €/m²] ✨</span>
-          <span class="pl-tag t-cln" title="Filtramos tamaños físicamente imposibles">Filtra size [10–5.000 m²]</span>
-          <span class="pl-tag t-cln" title="Un piso no puede tener más dormitorios que habitaciones totales — si ocurre, es un error">Elimina nb_bedrooms &gt; nb_rooms</span>
-          <span class="pl-tag t-cln" title="Variables con demasiados huecos no aportan información fiable al modelo">Excluye columnas con &gt;50% nulos</span>
-          <span class="pl-tag t-cln" title="En lugar de inventar valores, eliminamos las filas incompletas">Elimina filas con nulos restantes</span>
+          <span class="pl-tag t-cln">Agrupa property_type → 3 grupos</span>
+          <span class="pl-tag t-cln">Elimina outliers precio (p99)</span>
+          <span class="pl-tag t-cln">Filtra size [10–5.000 m²]</span>
+          <span class="pl-tag t-cln">Elimina nb_bedrooms &gt; nb_rooms</span>
+          <span class="pl-tag t-cln">Excluye columnas con &gt;50% nulos</span>
+          <span class="pl-tag t-cln">Elimina filas con nulos restantes</span>
         </div>
       </div>
       <div class="pl-arrow">│<br>▼</div>
@@ -700,21 +699,12 @@ with tab2:
       <div class="pl-step">
         <div class="pl-box c-eng">feature_engineering()</div>
         <div class="pl-desc">
-          <span class="pl-tag t-eng" title="El logaritmo comprime superficies muy grandes y mejora el aprendizaje del modelo">log_size = log(1 + size)</span>
-          <span class="pl-tag t-eng" title="También el precio se transforma en escala logarítmica para reducir el efecto de valores extremos">log1p(price) como target</span>
-          <span class="pl-tag t-eng" title="Los 2 primeros dígitos del código postal identifican el departamento (región). Reduce 8.000 ciudades a ~95 zonas">Departamento ← código postal</span>
-          <span class="pl-tag t-eng" title="En lugar de imputar el certificado energético, creamos una variable que indica si existe o no">has_energy_cert (0/1)</span>
-          <span class="pl-tag t-eng" title="Calculamos la distancia en km a París, Lyon, Marsella y otras 5 ciudades principales — la ubicación es clave para el precio">Distancias haversine a 8 ciudades</span>
-          <span class="pl-tag t-eng" title="Guardamos la distancia a la ciudad más cercana de las 8">dist_min_ciudad</span>
-        </div>
-      </div>
-      <div class="pl-arrow">│<br>▼</div>
-
-      <div class="pl-step">
-        <div class="pl-box c-eng" style="border-color:#ec4899;color:#9d174d;background:#fdf2f8;">MLP: OHE para dept ✨</div>
-        <div class="pl-desc">
-          <span class="pl-tag" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;" title="Las redes neuronales interpretan números como si tuviesen orden (75 > 69 = París 'mayor' que Lyon). OHE convierte cada departamento en una columna binaria independiente, evitando ese problema">dept_enc → columnas binarias por departamento</span>
-          <span class="pl-tag t-gray">Solo para MLP · RF y XGBoost usan dept_enc directamente</span>
+          <span class="pl-tag t-eng">log_size = log(1 + size)</span>
+          <span class="pl-tag t-eng">log1p(price) como target</span>
+          <span class="pl-tag t-eng">Departamento ← código postal</span>
+          <span class="pl-tag t-eng">has_energy_cert (0/1)</span>
+          <span class="pl-tag t-eng">Distancias haversine a 8 ciudades</span>
+          <span class="pl-tag t-eng">dist_min_ciudad</span>
         </div>
       </div>
       <div class="pl-arrow">│<br>▼</div>
