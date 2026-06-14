@@ -1035,13 +1035,11 @@ with tab5:
         )
         tipo_sel = st.selectbox(
             "Tipo de propiedad",
-            options=["apartamento", "casa", "terreno", "local_comercial", "otro"],
+            options=["apartamento", "casa", "lujo"],
             format_func=lambda x: {
                 "apartamento": "🏢 Apartamento (piso, dúplex, loft...)",
                 "casa": "🏘️ Casa (maison, villa, chalet...)",
-                "terreno": "🌿 Terreno",
-                "local_comercial": "🏪 Local comercial / Parking",
-                "otro": "📦 Otro (viager, propriété mixta...)",
+                "lujo": "✨ Lujo (villa, propriété...)",
             }.get(x, x),
         )
 
@@ -1049,18 +1047,11 @@ with tab5:
         st.markdown("**Características físicas**")
         size_sel = st.number_input("Superficie (m²)", min_value=10, max_value=1000, value=80, step=5)
         
-        # ── Ocultar habitaciones para terreno/local/otro ──────────────────────
-        if tipo_sel in ["terreno", "local_comercial", "otro"]:
-            rooms_sel     = 0
-            bedrooms_sel  = 0
-            bathrooms_sel = 0
-            st.info("Para este tipo de propiedad no aplican habitaciones ni baños.")
-        else:
-            rooms_sel     = st.number_input("Nº total de piezas (habitaciones + salón)", min_value=1, max_value=20, value=3,
-                                            help="Cuenta todas las piezas habitables: salón, dormitorios, etc.")
-            bedrooms_sel  = st.number_input("Nº de dormitorios", min_value=0, max_value=15, value=2,
-                                            help="Solo dormitorios. 0 = estudio/loft.")
-            bathrooms_sel = 0
+        rooms_sel     = st.number_input("Nº total de piezas (habitaciones + salón)", min_value=1, max_value=20, value=3,
+                                        help="Cuenta todas las piezas habitables: salón, dormitorios, etc.")
+        bedrooms_sel  = st.number_input("Nº de dormitorios", min_value=0, max_value=15, value=2,
+                                        help="Solo dormitorios. 0 = estudio/loft.")
+        bathrooms_sel = 0
 
     with col3:
         st.markdown("**Extras**")
@@ -1081,13 +1072,9 @@ with tab5:
     if parking_sel: extras.append(f"{parking_sel} parking")
     extras_txt = " · ".join(extras) if extras else "sin extras"
     energy_txt = f"clase {energy_sel}" if energy_sel != "No importa" else "clase energética indiferente"
-    tipo_icons2 = {"apartamento": "🏢", "casa": "🏘️", "terreno": "🌿", "local_comercial": "🏪", "otro": "📦"}
+    tipo_icons2 = {"apartamento": "🏢", "casa": "🏘️", "lujo": "✨"}
     dept_display = format_dept(provincia_sel)
-    
-    if tipo_sel not in ["terreno", "local_comercial"]:
-        st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {rooms_sel} piezas · {bedrooms_sel} dorm. · {extras_txt} · {energy_txt} · 📍 {dept_display}")
-    else:
-        st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {extras_txt} · 📍 {dept_display}")
+    st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {rooms_sel} piezas · {bedrooms_sel} dorm. · {extras_txt} · {energy_txt} · 📍 {dept_display}")
 
     st.divider()
 
