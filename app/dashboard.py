@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -11,6 +12,54 @@ import math
 
 from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES, build_input_for_model
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
+
+# ── Navegación entre pestañas ─────────────────────────────────────────────────
+TAB_NAMES = ["🏠 Predecir precio", "📊 Exploración de datos", "🤖 Modelos", "🔍 Anomalías por zona", "⚙️ Preprocesamiento"]
+
+def nav_buttons(current_idx: int):
+    """Botones de navegación al final de cada pestaña."""
+    prev_label = f"← {TAB_NAMES[current_idx - 1]}" if current_idx > 0 else ""
+    next_label = f"{TAB_NAMES[current_idx + 1]} →" if current_idx < len(TAB_NAMES) - 1 else ""
+    prev_idx = current_idx - 1
+    next_idx = current_idx + 1
+
+    btn_style = (
+        "padding:0.45rem 1.1rem; border-radius:8px; border:1.5px solid #0d9488; "
+        "background:white; color:#0d9488; font-size:0.95rem; cursor:pointer; "
+        "font-weight:600; transition:all 0.2s;"
+    )
+    top_style = (
+        "padding:0.45rem 1.1rem; border-radius:8px; border:1.5px solid #94a3b8; "
+        "background:white; color:#475569; font-size:0.95rem; cursor:pointer; font-weight:600;"
+    )
+
+    prev_btn = f'<button style="{btn_style}" onclick="goTab({prev_idx})">{prev_label}</button>' if prev_label else '<div></div>'
+    next_btn = f'<button style="{btn_style}" onclick="goTab({next_idx})">{next_label}</button>' if next_label else '<div></div>'
+
+    html = f"""
+    <div style="display:flex; justify-content:space-between; align-items:center;
+                margin-top:2.5rem; padding:1rem 0; border-top:1px solid #e2e8f0;">
+        {prev_btn}
+        <button style="{top_style}" onclick="scrollTop()">⬆ Arriba</button>
+        {next_btn}
+    </div>
+    <script>
+    function goTab(idx) {{
+        try {{
+            var tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+            if (tabs[idx]) {{ tabs[idx].click(); }}
+        }} catch(e) {{}}
+        scrollTop();
+    }}
+    function scrollTop() {{
+        try {{
+            window.parent.document.querySelector('section[data-testid="stMain"]').scrollTo({{top:0, behavior:"smooth"}});
+            window.parent.scrollTo({{top:0, behavior:"smooth"}});
+        }} catch(e) {{}}
+    }}
+    </script>
+    """
+    components.html(html, height=90)
 
 # ── Configuración de página ───────────────────────────────────────────────────
 st.set_page_config(
@@ -42,14 +91,6 @@ st.markdown("""
         border-left: 4px solid #0d9488;
         padding-left: 0.6rem;
         margin: 1.5rem 0 0.8rem 0;
-    }
-    div[data-testid="stTabs"] > div:first-child {
-        position: sticky;
-        top: 0;
-        z-index: 999;
-        background-color: white;
-        padding-bottom: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -569,6 +610,7 @@ with tab1:
     fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
     fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=550)
     st.plotly_chart(fig, use_container_width=True)
+    nav_buttons(1)
 
 # ── TAB 2 · PREPROCESAMIENTO ──────────────────────────────────────────────────
 with tab2:
@@ -775,6 +817,7 @@ with tab2:
     st.info("**🔶 ¿Por qué filtramos precio/m²?** Algunos registros del dataset tienen errores evidentes: apartamentos de 1 m² por 600.000 € o superficies de 15.000 m² por 50.000 €. El filtro [300–20.000 €/m²] elimina estas anomalías sin tocar viviendas reales.", icon="💡")
     st.info("**🔷 ¿Por qué usamos logaritmos?** Los precios de viviendas tienen una distribución muy asimétrica — hay muchas casas baratas y unas pocas muy caras. Transformar al espacio logarítmico hace la distribución más simétrica y mejora el aprendizaje de todos los modelos.", icon="💡")
     st.info("**🩷 ¿Por qué OHE solo para MLP?** Las redes neuronales multiplican cada variable por un peso numérico, por lo que interpretan 'departamento 75' como mayor que 'departamento 69' — algo sin sentido geográfico. Los árboles (RF y XGBoost) no tienen este problema: hacen splits exactos por valor.", icon="💡")
+    nav_buttons(4)
 
 # ── TAB 3 · MODELOS ───────────────────────────────────────────────────────────
 with tab3:
@@ -874,25 +917,20 @@ with tab3:
         paper_bgcolor="white",
     )
     st.plotly_chart(fig, use_container_width=True)
+    nav_buttons(2)
     
 # ── TAB 4 · ANOMALÍAS ─────────────────────────────────────────────────────────
 with tab4:
     st.markdown('<div class="section-title">Análisis de anomalías por zona</div>', unsafe_allow_html=True)
 
-    modelo_anomalia = st.radio(
-        "Modelo para el análisis de anomalías:",
-        options=["XGBoost", "Random Forest", "MLP"],
-        horizontal=True,
-    )
-    modelo_file = {"XGBoost": "predictions_xgb.csv", "Random Forest": "predictions_rf.csv", "MLP": "predictions_mlp.csv"}[modelo_anomalia]
-
     st.info(
-        f"Esta sección clasifica cada departamento como **tendencial** o **atípico** "
-        f"según si el diferencial entre precio real y predicho por **{modelo_anomalia}** supera el intervalo de confianza del 95%.",
+        "Esta sección clasifica cada departamento como **tendencial** o **atípico** "
+        "según si el diferencial entre precio real y predicho por XGBoost supera el intervalo de confianza del 95%.",
         icon="ℹ️"
     )
 
-    pred_path = OUTPUTS_PATH / modelo_file
+    # Carga predicciones reales de XGBoost; si no existen, usa datos simulados.
+    pred_path = OUTPUTS_PATH / "predictions_xgb.csv"
     if pred_path.exists():
         preds_df = pd.read_csv(pred_path)
         # Agrega por departamento: mediana real, mediana predicha, n viviendas
@@ -974,8 +1012,9 @@ with tab4:
     atipicos = dept_stats[dept_stats["clasificacion"] == "Atípico"].sort_values(
         "diferencial_pct", key=abs, ascending=False
     )[["nombre", "precio_real_mediano", "precio_predicho_mediano", "diferencial_pct", "n_viviendas"]]
-    atipicos.columns = ["Departamento", "Precio real mediano (€)", f"Precio predicho ({modelo_anomalia}) (€)", "Diferencial (%)", "N viviendas"]
+    atipicos.columns = ["Departamento", "Precio real mediano (€)", "Precio predicho (XGBoost) (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicos, use_container_width=True, hide_index=True)
+    nav_buttons(3)
     
 # ── TAB 5 · PREDICTOR DE PRECIO ───────────────────────────────────────────────
 
@@ -1256,3 +1295,4 @@ with tab5:
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
         )
         st.plotly_chart(fig_map, use_container_width=True)
+    nav_buttons(0)
