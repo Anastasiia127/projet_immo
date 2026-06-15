@@ -68,17 +68,6 @@ st.set_page_config(
     layout="wide",
 )
 
-components.html("""
-<script>
-setTimeout(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-        [data-baseweb="tab"] button { font-size: 1.1rem !important; font-weight: 600 !important; }
-    `;
-    window.parent.document.head.appendChild(style);
-}, 500);
-</script>
-""", height=0)
 
 # ── Estilos ───────────────────────────────────────────────────────────────────
 st.markdown("""
