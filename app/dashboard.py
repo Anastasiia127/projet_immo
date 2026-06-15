@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
@@ -11,6 +12,27 @@ import math
 
 from src.model_loader import get_model_status, get_available_models, load_model, get_metrics, get_predictions, OUTPUTS_PATH, PREDICTIONS_FILES, METRICS_FILES, build_input_for_model
 from src.preprocessing import load_and_prepare, NUMERICAL_FEATURES, BINARY_FEATURES, CATEGORICAL_FEATURES, TARGET
+
+TAB_NAMES = ["🏠 Predecir precio", "📊 Exploración de datos", "🤖 Modelos", "🔍 Anomalías por zona", "⚙️ Preprocesamiento"]
+
+def nav_buttons(current_idx: int):
+    prev_label = f"← {TAB_NAMES[current_idx - 1]}" if current_idx > 0 else ""
+    next_label = f"{TAB_NAMES[current_idx + 1]} →" if current_idx < len(TAB_NAMES) - 1 else ""
+    btn = "padding:0.45rem 1.1rem;border-radius:8px;border:1.5px solid #0d9488;background:white;color:#0d9488;font-size:0.95rem;cursor:pointer;font-weight:600;"
+    top = "padding:0.45rem 1.1rem;border-radius:8px;border:1.5px solid #94a3b8;background:white;color:#475569;font-size:0.95rem;cursor:pointer;font-weight:600;"
+    prev_btn = f'<button style="{btn}" onclick="goTab({current_idx-1})">{prev_label}</button>' if prev_label else '<div></div>'
+    next_btn = f'<button style="{btn}" onclick="goTab({current_idx+1})">{next_label}</button>' if next_label else '<div></div>'
+    components.html(f"""
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2rem;padding:1rem 0;border-top:1px solid #e2e8f0;">
+        {prev_btn}
+        <button style="{top}" onclick="scrollTop()">⬆ Arriba</button>
+        {next_btn}
+    </div>
+    <script>
+    function goTab(idx){{try{{window.parent.document.querySelectorAll('[data-baseweb="tab"]')[idx].click();}}catch(e){{}}scrollTop();}}
+    function scrollTop(){{try{{window.parent.document.querySelector('section[data-testid="stMain"]').scrollTo({{top:0,behavior:"smooth"}});}}catch(e){{}}}}
+    </script>
+    """, height=110)
 
 # ── Configuración de página ───────────────────────────────────────────────────
 st.set_page_config(
@@ -561,6 +583,7 @@ with tab1:
     fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
     fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", height=550)
     st.plotly_chart(fig, use_container_width=True)
+    nav_buttons(1)
 
 # ── TAB 2 · PREPROCESAMIENTO ──────────────────────────────────────────────────
 with tab2:
@@ -767,6 +790,7 @@ with tab2:
     st.info("**🔶 ¿Por qué filtramos precio/m²?** Algunos registros del dataset tienen errores evidentes: apartamentos de 1 m² por 600.000 € o superficies de 15.000 m² por 50.000 €. El filtro [300–20.000 €/m²] elimina estas anomalías sin tocar viviendas reales.", icon="💡")
     st.info("**🔷 ¿Por qué usamos logaritmos?** Los precios de viviendas tienen una distribución muy asimétrica — hay muchas casas baratas y unas pocas muy caras. Transformar al espacio logarítmico hace la distribución más simétrica y mejora el aprendizaje de todos los modelos.", icon="💡")
     st.info("**🩷 ¿Por qué OHE solo para MLP?** Las redes neuronales multiplican cada variable por un peso numérico, por lo que interpretan 'departamento 75' como mayor que 'departamento 69' — algo sin sentido geográfico. Los árboles (RF y XGBoost) no tienen este problema: hacen splits exactos por valor.", icon="💡")
+    nav_buttons(4)
 
 # ── TAB 3 · MODELOS ───────────────────────────────────────────────────────────
 with tab3:
@@ -867,6 +891,8 @@ with tab3:
     )
     st.plotly_chart(fig, use_container_width=True)
     
+    nav_buttons(2)
+
 # ── TAB 4 · ANOMALÍAS ─────────────────────────────────────────────────────────
 with tab4:
     st.markdown('<div class="section-title">Análisis de anomalías por zona</div>', unsafe_allow_html=True)
@@ -969,6 +995,8 @@ with tab4:
     atipicos.columns = ["Departamento", "Precio real mediano (€)", f"Precio predicho ({modelo_anomalia}) (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicos, use_container_width=True, hide_index=True)
     
+    nav_buttons(3)
+
 # ── TAB 5 · PREDICTOR DE PRECIO ───────────────────────────────────────────────
 
 with tab5:
@@ -1248,3 +1276,4 @@ with tab5:
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
         )
         st.plotly_chart(fig_map, use_container_width=True)
+    nav_buttons(0)
