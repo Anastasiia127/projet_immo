@@ -994,6 +994,157 @@ with tab4:
     )[["nombre", "precio_real_mediano", "precio_predicho_mediano", "diferencial_pct", "n_viviendas"]]
     atipicos.columns = ["Departamento", "Precio real mediano (€)", f"Precio predicho ({modelo_anomalia}) (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicos, use_container_width=True, hide_index=True)
+
+    # ── Mapa físico con departamentos atípicos destacados ──────────────────────
+    st.markdown('<div class="section-title">Mapa de anomalías — Francia</div>', unsafe_allow_html=True)
+
+    DEPT_FAMA = {
+        "01": "Ain — Puertas de los Alpes, gastronomía",
+        "02": "Aisne — Champagne, Primera Guerra Mundial",
+        "03": "Allier — Balnearios, termas del Vichy",
+        "04": "Alpes-de-Haute-Provence — Lavanda, Verdon",
+        "05": "Hautes-Alpes — Esquí, Gap",
+        "06": "Alpes-Maritimes — Costa Azul, Niza, Cannes",
+        "07": "Ardèche — Naturaleza, cañones",
+        "08": "Ardennes — Frontera, bosques",
+        "09": "Ariège — Pirineos, cátaros",
+        "10": "Aube — Champagne, Troyes",
+        "11": "Aude — Carcasona medieval, Cátaros",
+        "12": "Aveyron — Roquefort, Millau",
+        "13": "Bouches-du-Rhône — Marsella, Calanques",
+        "14": "Calvados — D-Day, licor Calvados",
+        "15": "Cantal — Volcanes, queso AOP",
+        "16": "Charente — Coñac, Angoulême",
+        "17": "Charente-Maritime — La Rochelle, Île de Ré",
+        "18": "Cher — Bourges, corazón de Francia",
+        "19": "Corrèze — Collonges-la-Rouge, Uzerche",
+        "21": "Côte-d'Or — Vinos de Borgoña, Dijon",
+        "22": "Côtes-d'Armor — Costa Bretaña, megalitos",
+        "23": "Creuse — Tapices de Aubusson",
+        "24": "Dordogne — Périgord, Lascaux, foie gras",
+        "25": "Doubs — Besançon, frontera suiza",
+        "26": "Drôme — Provence, lavanda",
+        "27": "Eure — Normandía, Monet en Giverny",
+        "28": "Eure-et-Loir — Chartres, cereales",
+        "29": "Finistère — Punta de Bretaña, Celtic",
+        "30": "Gard — Pont du Gard, Camargue",
+        "31": "Haute-Garonne — Toulouse, aeronáutica",
+        "32": "Gers — Armagnac, foie gras",
+        "33": "Gironde — Burdeos, vinos AOC",
+        "34": "Hérault — Montpellier, Mediterráneo",
+        "35": "Ille-et-Vilaine — Rennes, Mont Saint-Michel",
+        "36": "Indre — Château de Valençay",
+        "37": "Indre-et-Loire — Châteaux del Loira, Turena",
+        "38": "Isère — Grenoble, Alpes",
+        "39": "Jura — Vinos del Jura, quesos",
+        "40": "Landes — Atlántico, Hossegor, surf",
+        "41": "Loir-et-Cher — Châteaux Chambord, Cheverny",
+        "42": "Loire — Saint-Étienne, Gorges de la Loire",
+        "43": "Haute-Loire — Puy-en-Velay, encajes",
+        "44": "Loire-Atlantique — Nantes, Pays de la Loire",
+        "45": "Loiret — Orléans, Juana de Arco",
+        "46": "Lot — Cahors, Rocamadour",
+        "47": "Lot-et-Garonne — Agen, ciruelas",
+        "48": "Lozère — Cévennes, menos densidad de Francia",
+        "49": "Maine-et-Loire — Anjou, vinos blancos",
+        "50": "Manche — Mont Saint-Michel, Normandía",
+        "51": "Marne — Reims, Champagne",
+        "52": "Haute-Marne — Langres, frontera",
+        "53": "Mayenne — Laval, bocage normand",
+        "54": "Meurthe-et-Moselle — Nancy, Art Nouveau",
+        "55": "Meuse — Verdún, Primera Guerra Mundial",
+        "56": "Morbihan — Carnac, megalitos, golfo",
+        "57": "Moselle — Metz, región fronteriza",
+        "58": "Nièvre — Borgoña, Nevers",
+        "59": "Nord — Lille, región industrial",
+        "60": "Oise — Chantilly, Compiègne",
+        "61": "Orne — Normandía, caballos, queso camembert",
+        "62": "Pas-de-Calais — Túnel del Canal, dunas",
+        "63": "Puy-de-Dôme — Volcanes Auvernia, Clermont",
+        "64": "Pyrénées-Atlantiques — País Vasco, Biarritz, Pau",
+        "65": "Hautes-Pyrénées — Lourdes, Pirineos",
+        "66": "Pyrénées-Orientales — Perpignan, Cataluña francesa",
+        "67": "Bas-Rhin — Estrasburgo, Alsacia, ruta del vino",
+        "68": "Haut-Rhin — Colmar, Alsacia",
+        "69": "Rhône — Lyon, gastronomía capital",
+        "70": "Haute-Saône — Vesoul, tranquilidad",
+        "71": "Saône-et-Loire — Mâcon, Cluny, vinos",
+        "72": "Sarthe — Le Mans, 24 horas",
+        "73": "Savoie — Esquí, Mont Blanc, Chambéry",
+        "74": "Haute-Savoie — Annecy, Chamonix, Lago Ginebra",
+        "75": "Paris — Capital, Eiffel, Louvre",
+        "76": "Seine-Maritime — Ruán, Étretat, Normandía",
+        "77": "Seine-et-Marne — Disneyland Paris, Fontainebleau",
+        "78": "Yvelines — Versailles, Île-de-France",
+        "79": "Deux-Sèvres — Marais poitevin, zona pantanosa",
+        "80": "Somme — Bahía de Somme, aves",
+        "81": "Tarn — Albi, Toulouse-Lautrec",
+        "82": "Tarn-et-Garonne — Montauban, fruta",
+        "83": "Var — Saint-Tropez, islas de Hyères, Costa Azul",
+        "84": "Vaucluse — Aviñón, Lubéron, lavanda",
+        "85": "Vendée — Puy du Fou, costa atlántica",
+        "86": "Vienne — Poitiers, Futuroscope",
+        "87": "Haute-Vienne — Limoges, porcelana",
+        "88": "Vosges — Bosques, esquí, Juana de Arco",
+        "89": "Yonne — Borgoña, Auxerre, Chablis",
+        "90": "Territoire de Belfort — Belfort, industria",
+        "91": "Essonne — Île-de-France, Evry",
+        "92": "Hauts-de-Seine — La Défense, Boulogne",
+        "93": "Seine-Saint-Denis — Stade de France, diversidad",
+        "94": "Val-de-Marne — Banlieue este de París",
+        "95": "Val-d'Oise — Cergy, Île-de-France norte",
+    }
+
+    geojson = get_geojson()
+    if geojson:
+        dept_stats["fama"] = dept_stats["dept"].map(DEPT_FAMA).fillna(dept_stats["nombre"])
+        dept_stats["color_val"] = dept_stats["clasificacion"].map({"Atípico": 1, "Tendencial": 0})
+        dept_stats["hover"] = dept_stats.apply(
+            lambda r: f"<b>{r['nombre']}</b><br>"
+                      f"{r['fama'].split('—')[-1].strip() if '—' in str(r['fama']) else ''}<br>"
+                      f"Diferencial: {r['diferencial_pct']:+.1f}%<br>"
+                      f"Real: {r['precio_real_mediano']:,.0f} € · Predicho: {r['precio_predicho_mediano']:,.0f} €",
+            axis=1
+        )
+
+        fig_map = px.choropleth_mapbox(
+            dept_stats,
+            geojson=geojson,
+            locations="dept",
+            featureidkey="properties.code",
+            color="clasificacion",
+            color_discrete_map={"Atípico": "#e74c3c", "Tendencial": "#0d9488"},
+            mapbox_style="carto-positron",
+            zoom=4.5,
+            center={"lat": 46.8, "lon": 2.3},
+            opacity=0.65,
+            hover_name="nombre",
+            hover_data={
+                "dept": False,
+                "clasificacion": True,
+                "diferencial_pct": True,
+                "precio_real_mediano": ":,.0f",
+                "precio_predicho_mediano": ":,.0f",
+                "fama": True,
+                "color_val": False,
+                "hover": False,
+            },
+            labels={
+                "clasificacion": "Clasificación",
+                "diferencial_pct": "Diferencial (%)",
+                "precio_real_mediano": "Precio real mediano (€)",
+                "precio_predicho_mediano": "Precio predicho (€)",
+                "fama": "Conocido por",
+            },
+        )
+        fig_map.update_layout(
+            paper_bgcolor="white",
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            height=580,
+            legend=dict(title="Clasificación", bgcolor="white", bordercolor="#e2e8f0", borderwidth=1),
+        )
+        st.plotly_chart(fig_map, use_container_width=True)
+        st.caption("🟢 Tendencial: el precio real coincide con lo esperado · 🔴 Atípico: el mercado se desvía significativamente del modelo")
     
     nav_buttons(3)
 
