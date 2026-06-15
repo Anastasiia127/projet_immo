@@ -92,8 +92,8 @@ st.markdown("""
         padding-left: 0.6rem;
         margin: 1.5rem 0 0.8rem 0;
     }
-    [data-baseweb="tab"] button p {
-        font-size: 1.05rem !important;
+    button[data-baseweb="tab"] {
+        font-size: 1.1rem !important;
         font-weight: 600 !important;
     }
 </style>
