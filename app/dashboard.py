@@ -59,7 +59,7 @@ def nav_buttons(current_idx: int):
     }}
     </script>
     """
-    components.html(html, height=110)
+    components.html(html, height=90)
 
 # ── Configuración de página ───────────────────────────────────────────────────
 st.set_page_config(
@@ -67,7 +67,6 @@ st.set_page_config(
     page_icon="🏠",
     layout="wide",
 )
-
 
 # ── Estilos ───────────────────────────────────────────────────────────────────
 st.markdown("""
