@@ -68,6 +68,18 @@ st.set_page_config(
     layout="wide",
 )
 
+components.html("""
+<script>
+setTimeout(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+        [data-baseweb="tab"] button { font-size: 1.1rem !important; font-weight: 600 !important; }
+    `;
+    window.parent.document.head.appendChild(style);
+}, 500);
+</script>
+""", height=0)
+
 # ── Estilos ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -91,10 +103,6 @@ st.markdown("""
         border-left: 4px solid #0d9488;
         padding-left: 0.6rem;
         margin: 1.5rem 0 0.8rem 0;
-    }
-    button[data-baseweb="tab"] {
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
     }
 </style>
 """, unsafe_allow_html=True)
