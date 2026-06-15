@@ -43,14 +43,13 @@ st.markdown("""
         padding-left: 0.6rem;
         margin: 1.5rem 0 0.8rem 0;
     }
-    .stTabs [data-baseweb="tab-list"] {
+    div[data-testid="stTabs"] > div:first-child {
         position: sticky;
         top: 0;
         z-index: 999;
-        background: white;
-        padding-top: 0.5rem;
-        padding-bottom: 0.3rem;
-        border-bottom: 1px solid #e2e8f0;
+        background-color: white;
+        padding-bottom: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
 </style>
 """, unsafe_allow_html=True)
