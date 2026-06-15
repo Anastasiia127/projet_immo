@@ -59,7 +59,7 @@ def nav_buttons(current_idx: int):
     }}
     </script>
     """
-    components.html(html, height=90)
+    components.html(html, height=110)
 
 # ── Configuración de página ───────────────────────────────────────────────────
 st.set_page_config(
