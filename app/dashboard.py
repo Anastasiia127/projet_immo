@@ -1098,14 +1098,10 @@ with tab4:
     geojson = get_geojson()
     if geojson:
         dept_stats["fama"] = dept_stats["dept"].map(DEPT_FAMA).fillna(dept_stats["nombre"])
-        dept_stats["color_val"] = dept_stats["clasificacion"].map({"Atípico": 1, "Tendencial": 0})
-        dept_stats["hover"] = dept_stats.apply(
-            lambda r: f"<b>{r['nombre']}</b><br>"
-                      f"{r['fama'].split('—')[-1].strip() if '—' in str(r['fama']) else ''}<br>"
-                      f"Diferencial: {r['diferencial_pct']:+.1f}%<br>"
-                      f"Real: {r['precio_real_mediano']:,.0f} € · Predicho: {r['precio_predicho_mediano']:,.0f} €",
-            axis=1
+        dept_stats["fama_short"] = dept_stats["fama"].apply(
+            lambda x: x.split("—")[-1].strip() if "—" in str(x) else x
         )
+        dept_stats["color_val"] = dept_stats["clasificacion"].map({"Atípico": 1, "Tendencial": 0})
 
         fig_map = px.choropleth_mapbox(
             dept_stats,
@@ -1119,23 +1115,15 @@ with tab4:
             center={"lat": 46.8, "lon": 2.3},
             opacity=0.65,
             hover_name="nombre",
-            hover_data={
-                "dept": False,
-                "clasificacion": True,
-                "diferencial_pct": True,
-                "precio_real_mediano": ":,.0f",
-                "precio_predicho_mediano": ":,.0f",
-                "fama": True,
-                "color_val": False,
-                "hover": False,
-            },
-            labels={
-                "clasificacion": "Clasificación",
-                "diferencial_pct": "Diferencial (%)",
-                "precio_real_mediano": "Precio real mediano (€)",
-                "precio_predicho_mediano": "Precio predicho (€)",
-                "fama": "Conocido por",
-            },
+            custom_data=["fama_short", "diferencial_pct", "clasificacion"],
+        )
+        fig_map.update_traces(
+            hovertemplate=(
+                "<b>%{hovertext}</b><br>"
+                "<i><b>%{customdata[0]}</b></i><br>"
+                "Diferencial: <b>%{customdata[1]:+.1f}%</b> · %{customdata[2]}"
+                "<extra></extra>"
+            )
         )
         fig_map.update_layout(
             paper_bgcolor="white",
