@@ -93,80 +93,6 @@ df = get_data()
 st.markdown('<div class="main-title">🏠 OuiPredict</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Tu guía inteligente para comprar vivienda en Francia · UPV · 2026</div>', unsafe_allow_html=True)
 
-# ── Landing hero ──────────────────────────────────────────────────────────────
-st.markdown("""
-<div style="background: linear-gradient(135deg, #f0fdfc 0%, #e0f2fe 100%); border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 1rem;">
-    <p style="font-size: 1.15rem; color: #1e293b; margin-bottom: 1rem;">
-        Introduce las características de la vivienda que buscas y te diremos si el precio es justo, 
-        cómo se compara con la zona y qué esperar del mercado.
-    </p>
-    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.5rem;">🎯</span>
-            <div><strong>Predice el precio justo</strong><br><small>Modelos entrenados con 37.000+ viviendas reales</small></div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.5rem;">📍</span>
-            <div><strong>Analiza la zona</strong><br><small>Precios medianos, mínimos y máximos por departamento</small></div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.5rem;">📊</span>
-            <div><strong>Compara con el mercado</strong><br><small>Ve dónde se sitúa tu vivienda respecto a la competencia</small></div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Métricas globales ─────────────────────────────────────────────────────────
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.metric("Total viviendas", f"{len(df):,}".replace(",", "."))
-with c2:
-    st.metric("Precio mediano", f"{int(df[TARGET].median()):,} €".replace(",", "."))
-with c3:
-    st.metric("€/m² mediano", f"{int(df['price_per_m2'].median()):,} €".replace(",", "."))
-with c4:
-    st.metric("Ciudades", f"{df['city'].nunique():,}".replace(",", "."))
-
-st.divider()
-
-with st.expander("❓ ¿Cómo usar OuiPredict?"):
-    st.markdown("""
-    
-    **🏠 Predecir precio** 
-    1. Elige el **modelo** — XGBoost es el más preciso (R²=81%), pero todos son válidos
-    2. Selecciona el **departamento** donde quieres comprar — los más populares están arriba con iconos
-    3. Elige el **tipo de propiedad** (apartamento, casa, terreno...)
-    4. Rellena la **superficie** y las características físicas
-    5. Marca los **extras** que necesitas (balcón, garaje, A/C...)
-    6. Pulsa **"Calcular precio estimado"**
-    7. Obtendrás el precio estimado, el contexto de mercado con viviendas similares, y un gauge que te dice si es barato o caro para la zona
-
-    ---
-
-    **📊 Exploración de datos**
-    - Usa el **filtro de tipo** para ver solo apartamentos o solo casas
-    - Los mapas son interactivos — haz zoom y pasa el ratón para ver detalles
-    - Los gráficos técnicos (correlación, varianza...) están plegados al final
-
-    ---
-
-    **🤖 Modelos**
-    - Compara la precisión de los tres modelos entrenados
-    - El gráfico "Predicción vs Realidad" muestra qué tan bien predice cada modelo — cuanto más cerca de la línea roja, mejor
-
-    ---
-
-    **🔍 Anomalías por zona**
-    - Las zonas en **rojo** tienen precios significativamente distintos de lo esperado — pueden estar sobrevaloradas o infravaloradas
-    - Usa el slider para ver más o menos ciudades
-
-    ---
-
-    **⚙️ Preprocesamiento**
-    - Documentación técnica del pipeline de datos — útil si quieres entender cómo se prepararon los datos para el modelo
-    """)
-
 
 # ── Nombres de los departamentos franceses ────────────────────────────────────
 DEPT_NOMBRES = {
@@ -1139,6 +1065,64 @@ with tab4:
 # ── TAB 5 · PREDICTOR DE PRECIO ───────────────────────────────────────────────
 
 with tab5:
+    # ── Landing hero ──────────────────────────────────────────────────────────
+    st.markdown("""
+<div style="background: linear-gradient(135deg, #f0fdfc 0%, #e0f2fe 100%); border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 1rem;">
+    <p style="font-size: 1.15rem; color: #1e293b; margin-bottom: 1rem;">
+        Introduce las características de la vivienda que buscas y te diremos si el precio es justo, 
+        cómo se compara con la zona y qué esperar del mercado.
+    </p>
+    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">🎯</span>
+            <div><strong>Predice el precio justo</strong><br><small>Modelos entrenados con 37.000+ viviendas reales</small></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">📍</span>
+            <div><strong>Analiza la zona</strong><br><small>Precios medianos, mínimos y máximos por departamento</small></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">📊</span>
+            <div><strong>Compara con el mercado</strong><br><small>Ve dónde se sitúa tu vivienda respecto a la competencia</small></div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── Métricas globales ──────────────────────────────────────────────────────
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Total viviendas", f"{len(df):,}".replace(",", "."))
+    with c2:
+        st.metric("Precio mediano", f"{int(df[TARGET].median()):,} €".replace(",", "."))
+    with c3:
+        st.metric("€/m² mediano", f"{int(df['price_per_m2'].median()):,} €".replace(",", "."))
+    with c4:
+        st.metric("Ciudades", f"{df['city'].nunique():,}".replace(",", "."))
+
+    st.divider()
+
+    with st.expander("❓ ¿Cómo usar OuiPredict?"):
+        st.markdown("""
+    **🏠 Predecir precio** 
+    1. Elige el **modelo** — XGBoost es el más preciso (R²=81%), pero todos son válidos
+    2. Selecciona el **departamento** donde quieres comprar
+    3. Elige el **tipo de propiedad** (apartamento, casa, lujo)
+    4. Rellena la **superficie** y las características físicas
+    5. Marca los **extras** que necesitas (balcón, garaje, A/C...)
+    6. Pulsa **"Calcular precio estimado"**
+
+    ---
+
+    **📊 Exploración de datos** — Mapas interactivos, histogramas, rankings de ciudades
+
+    **🤖 Modelos** — Compara la precisión de los tres modelos entrenados
+
+    **🔍 Anomalías por zona** — Detecta zonas donde el mercado se aleja de lo esperado
+
+    **⚙️ Preprocesamiento** — Documentación técnica del pipeline de datos
+        """)
+
     st.markdown('<div class="section-title">Predictor de precio de vivienda</div>', unsafe_allow_html=True)
 
     available_models = get_available_models()
