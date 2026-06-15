@@ -879,9 +879,12 @@ with tab4:
 
     # Carga predicciones reales de XGBoost; si no existen, usa datos simulados.
     pred_path = OUTPUTS_PATH / "predictions_xgb.csv"
-    if pred_path.exists() and "dept" in pd.read_csv(pred_path, nrows=1).columns:
+    if pred_path.exists():
         preds_df = pd.read_csv(pred_path)
         # Agrega por departamento: mediana real, mediana predicha, n viviendas
+        dept_map_inv = {v: k for k, v in enumerate(sorted(df["provincia"].unique()))}
+        dept_enc_to_str = {i: d for i, d in enumerate(sorted(df["provincia"].unique()))}
+        preds_df["dept"] = preds_df["dept"].map(dept_enc_to_str)
         dept_stats = (
             preds_df.groupby("dept")
             .agg(
