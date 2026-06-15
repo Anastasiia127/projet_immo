@@ -871,14 +871,20 @@ with tab3:
 with tab4:
     st.markdown('<div class="section-title">Análisis de anomalías por zona</div>', unsafe_allow_html=True)
 
+    modelo_anomalia = st.radio(
+        "Modelo para el análisis de anomalías:",
+        options=["XGBoost", "Random Forest", "MLP"],
+        horizontal=True,
+    )
+    modelo_file = {"XGBoost": "predictions_xgb.csv", "Random Forest": "predictions_rf.csv", "MLP": "predictions_mlp.csv"}[modelo_anomalia]
+
     st.info(
-        "Esta sección clasifica cada departamento como **tendencial** o **atípico** "
-        "según si el diferencial entre precio real y predicho por XGBoost supera el intervalo de confianza del 95%.",
+        f"Esta sección clasifica cada departamento como **tendencial** o **atípico** "
+        f"según si el diferencial entre precio real y predicho por **{modelo_anomalia}** supera el intervalo de confianza del 95%.",
         icon="ℹ️"
     )
 
-    # Carga predicciones reales de XGBoost; si no existen, usa datos simulados.
-    pred_path = OUTPUTS_PATH / "predictions_xgb.csv"
+    pred_path = OUTPUTS_PATH / modelo_file
     if pred_path.exists():
         preds_df = pd.read_csv(pred_path)
         # Agrega por departamento: mediana real, mediana predicha, n viviendas
@@ -960,7 +966,7 @@ with tab4:
     atipicos = dept_stats[dept_stats["clasificacion"] == "Atípico"].sort_values(
         "diferencial_pct", key=abs, ascending=False
     )[["nombre", "precio_real_mediano", "precio_predicho_mediano", "diferencial_pct", "n_viviendas"]]
-    atipicos.columns = ["Departamento", "Precio real mediano (€)", "Precio predicho (XGBoost) (€)", "Diferencial (%)", "N viviendas"]
+    atipicos.columns = ["Departamento", "Precio real mediano (€)", f"Precio predicho ({modelo_anomalia}) (€)", "Diferencial (%)", "N viviendas"]
     st.dataframe(atipicos, use_container_width=True, hide_index=True)
     
 # ── TAB 5 · PREDICTOR DE PRECIO ───────────────────────────────────────────────
