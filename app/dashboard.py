@@ -1400,17 +1400,21 @@ with tab5:
                 "⚓ Nantes":   (47.2184, -1.5536),
                 "🏭 Lille":    (50.6292,  3.0573),
             }
-
+            dept_info = df.groupby("provincia").agg(
+                n_anuncios=("price", "count"),
+                n_ciudades=("city", "nunique"),
+            ).reset_index()
+            dept_info_dict = dept_info.set_index("provincia")[["n_anuncios", "n_ciudades"]].to_dict("index")
             map_df = pd.DataFrame({
                 "dept": dept_codes,
-                "tipo": [
-                    "Seleccionado" if c == dept else "Francia"
-                    for c in dept_codes
-                ],
+                "tipo": ["Seleccionado" if c == dept else "Francia" for c in dept_codes],
+                "n_anuncios": [dept_info_dict.get(c, {}).get("n_anuncios", 0) for c in dept_codes],
+                "n_ciudades":  [dept_info_dict.get(c, {}).get("n_ciudades", 0) for c in dept_codes],
             })
 
             fig_map = px.choropleth_mapbox(
                 map_df,
+                custom_data=["n_anuncios", "n_ciudades"],
                 geojson=geojson_map,
                 locations="dept",
                 featureidkey="properties.code",
@@ -1426,7 +1430,7 @@ with tab5:
                 height=420,
             )
             fig_map.update_traces(
-                hovertemplate="<b>%{location}</b><extra></extra>",
+                hovertemplate="<b>%{location}</b><br>%{customdata[1]} ciudades · %{customdata[0]:,} anuncios<extra></extra>",
                 showlegend=False,
             )
 
