@@ -1408,13 +1408,14 @@ with tab5:
             map_df = pd.DataFrame({
                 "dept": dept_codes,
                 "tipo": ["Seleccionado" if c == dept else "Francia" for c in dept_codes],
+                "nombre": [DEPT_NOMBRES.get(c, c) for c in dept_codes],
                 "n_anuncios": [dept_info_dict.get(c, {}).get("n_anuncios", 0) for c in dept_codes],
                 "n_ciudades":  [dept_info_dict.get(c, {}).get("n_ciudades", 0) for c in dept_codes],
             })
 
             fig_map = px.choropleth_mapbox(
                 map_df,
-                custom_data=["n_anuncios", "n_ciudades"],
+                custom_data=["nombre", "n_anuncios", "n_ciudades"],
                 geojson=geojson_map,
                 locations="dept",
                 featureidkey="properties.code",
@@ -1430,7 +1431,7 @@ with tab5:
                 height=420,
             )
             fig_map.update_traces(
-                hovertemplate="<b>%{location}</b><br>%{customdata[1]} ciudades · %{customdata[0]:,} anuncios<extra></extra>",
+                hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[2]} ciudades · %{customdata[1]:,} anuncios<extra></extra>",
                 showlegend=False,
             )
 
