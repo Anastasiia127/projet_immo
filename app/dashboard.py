@@ -1366,17 +1366,20 @@ with tab5:
             return round(R * 2 * math.asin(math.sqrt(a)))
 
         CIUDADES_DIST = {
-            "🗼 París":    (48.8566,  2.3522),
-            "🦁 Lyon":     (45.7640,  4.8357),
-            "⛵ Marsella": (43.2965,  5.3698),
-            "🍷 Burdeos":  (44.8378, -0.5792),
-            "🌊 Niza":     (43.7102,  7.2620),
+            "🗼 París":     (48.8566,  2.3522),
+            "🦁 Lyon":      (45.7640,  4.8357),
+            "⛵ Marsella":  (43.2965,  5.3698),
+            "🍷 Burdeos":   (44.8378, -0.5792),
+            "🌊 Niza":      (43.7102,  7.2620),
+            "✈️ Toulouse":  (43.6047,  1.4442),
+            "⚓ Nantes":    (47.2184, -1.5536),
+            "🏭 Lille":     (50.6292,  3.0573),
         }
         dists_display = {ciudad: haversine_simple(dept_lat, dept_lon, clat, clon) 
                         for ciudad, (clat, clon) in CIUDADES_DIST.items()}
         
         st.markdown("**🗺️ Distancias desde este departamento:**")
-        dist_cols = st.columns(5)
+        dist_cols = st.columns(8)
         for i, (ciudad, km) in enumerate(dists_display.items()):
             dist_cols[i].metric(ciudad, f"{km} km")
 
@@ -1417,7 +1420,7 @@ with tab5:
                     "Francia":      "#E2E8F0",
                 },
                 mapbox_style="carto-positron",
-                zoom=4.8,
+                zoom=6.7,
                 center={"lat": dept_lat, "lon": dept_lon},
                 opacity=0.75,
                 height=420,
