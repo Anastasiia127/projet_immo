@@ -1431,7 +1431,7 @@ with tab5:
                 height=420,
             )
             fig_map.update_traces(
-                hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[2]} ciudades · %{customdata[1]:,} anuncios<extra></extra>",
+                hovertemplate="<b>%{customdata[0]}</b> (%{location})<br>%{customdata[2]} ciudades · %{customdata[1]:,} anuncios<extra></extra>",
                 showlegend=False,
             )
 
