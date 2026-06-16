@@ -344,7 +344,7 @@ with tab1:
 
     # ── Valores nulos ─────────────────────────────────────────────────────────
     with st.expander("🕳️ Valores nulos por columna"):
-        st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 50% (floor, land_size, ghg_value, ghg_category, exposition) se excluyen directamente. Las filas con nulos restantes se eliminan, sin imputación.")
+        st.caption("Las columnas con muchos nulos son problemáticas para el modelo. Las que superan el 50% (floor, land_size, ghg_value, ghg_category, exposition, nb_bathrooms) se excluyen directamente...")
         nulls = df.isnull().sum().reset_index()
         nulls.columns = ["columna", "nulos"]
         nulls["porcentaje"] = (nulls["nulos"] / len(df) * 100).round(1)
@@ -538,7 +538,7 @@ with tab2:
     st.markdown('<div class="section-title">Tratamiento de valores nulos</div>', unsafe_allow_html=True)
 
     tratamiento = pd.DataFrame([
-        {"Variable": "floor, land_size, ghg_value, ghg_category, exposition", "Estrategia": "Excluidas del modelo", "Motivo": ">50% de valores nulos"},
+        {"Variable": "floor, land_size, ghg_value, ghg_category, exposition, nb_bathrooms", "Estrategia": "Excluidas del modelo", "Motivo": ">50% de valores nulos"},
         {"Variable": "energy_performance_category", "Estrategia": "Convertida a has_energy_cert (0/1)", "Motivo": "Preserva señal de ausencia sin imputar"},
         {"Variable": "Filas con nulos restantes", "Estrategia": "Eliminación de fila", "Motivo": "Sin imputación para evitar sesgos artificiales"},
         {"Variable": "price (target)", "Estrategia": "Eliminación de fila", "Motivo": "Sin target no hay entrenamiento"},
