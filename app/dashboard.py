@@ -1220,8 +1220,8 @@ with tab5:
         cellar_sel  = st.checkbox("Tiene sótano", value=False)
         garage_sel  = st.checkbox("Tiene garaje", value=False)
         ac_sel      = st.checkbox("Tiene aire acondicionado", value=False)
-        energy_sel  = st.selectbox("Clase energética", options=["No importa", "A", "B", "C", "D", "E", "F", "G"], index=0,
-                                   help="A = más eficiente, G = menos eficiente. 'No importa' usa valor medio.")
+        energy_sel  = st.checkbox("Tiene certificado energético", value=False,
+                          help="Marca si la vivienda dispone de certificado de eficiencia energética.")
 
     # ── Resumen de lo seleccionado ────────────────────────────────────────────
     extras = []
@@ -1231,7 +1231,7 @@ with tab5:
     if ac_sel:      extras.append("A/C")
     if parking_sel: extras.append(f"{parking_sel} parking")
     extras_txt = " · ".join(extras) if extras else "sin extras"
-    energy_txt = f"clase {energy_sel}" if energy_sel != "No importa" else "clase energética indiferente"
+    energy_txt = "con certificado energético" if energy_sel else "sin certificado energético"
     tipo_icons2 = {"apartamento": "🏢", "casa": "🏘️", "lujo": "✨"}
     dept_display = format_dept(provincia_sel)
     st.info(f"{tipo_icons2.get(tipo_sel,'')} **{tipo_sel}** · {size_sel} m² · {rooms_sel} piezas · {bedrooms_sel} dorm. · {extras_txt} · {energy_txt} · 📍 {dept_display}")
@@ -1264,7 +1264,7 @@ with tab5:
             "has_a_cellar":         int(cellar_sel),
             "has_a_garage":         int(garage_sel),
             "has_air_conditioning": int(ac_sel),
-            "has_energy_cert":      0 if energy_sel == "No importa" else 1,
+            "has_energy_cert":      1 if energy_sel else 0,
             "has_ghg_value":        0,
             "property_group":       property_group,
         }
