@@ -1380,23 +1380,103 @@ with tab5:
         for i, (ciudad, km) in enumerate(dists_display.items()):
             dist_cols[i].metric(ciudad, f"{km} km")
 
-        # Mini mapa con la ubicación del departamento
+        # Mini mapa con choropleth — departamento seleccionado + ciudades con distancias
         st.markdown(f"**📍 Ubicación: {dept_name}**")
-        dept_df = pd.DataFrame([{"lat": dept_lat, "lon": dept_lon, "name": dept_name}])
-        fig_map = px.scatter_mapbox(
-            dept_df, lat="lat", lon="lon",
-            hover_name="name",
-            zoom=6,
-            center={"lat": dept_lat, "lon": dept_lon},
-            mapbox_style="carto-positron",
-            height=300,
-            size_max=20,
-            color_discrete_sequence=["#e74c3c"],
-        )
-        fig_map.update_traces(marker=dict(size=15))
-        fig_map.update_layout(
-            paper_bgcolor="white",
-            margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        )
-        st.plotly_chart(fig_map, use_container_width=True)
+
+        geojson_map = get_geojson()
+        if geojson_map:
+            # Datos para colorear departamentos
+            dept_codes = [f["properties"]["code"] for f in geojson_map["features"]]
+            CIUDADES_COORDS = {
+                "🗼 París":    (48.8566,  2.3522),
+                "🦁 Lyon":    (45.7640,  4.8357),
+                "⛵ Marsella": (43.2965,  5.3698),
+                "🍷 Burdeos":  (44.8378, -0.5792),
+                "🌊 Niza":    (43.7102,  7.2620),
+                "🏭 Toulouse": (43.6047,  1.4442),
+                "⚓ Nantes":   (47.2184, -1.5536),
+                "🏭 Lille":    (50.6292,  3.0573),
+            }
+
+            map_df = pd.DataFrame({
+                "dept": dept_codes,
+                "tipo": [
+                    "Seleccionado" if c == dept else "Francia"
+                    for c in dept_codes
+                ],
+            })
+
+            fig_map = px.choropleth_mapbox(
+                map_df,
+                geojson=geojson_map,
+                locations="dept",
+                featureidkey="properties.code",
+                color="tipo",
+                color_discrete_map={
+                    "Seleccionado": "#0D9488",
+                    "Francia":      "#E2E8F0",
+                },
+                mapbox_style="carto-positron",
+                zoom=4.8,
+                center={"lat": dept_lat, "lon": dept_lon},
+                opacity=0.75,
+                height=420,
+            )
+            fig_map.update_traces(
+                hovertemplate="<b>%{location}</b><extra></extra>",
+                showlegend=False,
+            )
+
+            # Añadir marcadores de ciudades con distancias
+            city_lats, city_lons, city_texts, city_sizes, city_colors = [], [], [], [], []
+            for ciudad, (clat, clon) in CIUDADES_COORDS.items():
+                km = haversine_simple(dept_lat, dept_lon, clat, clon)
+                city_lats.append(clat)
+                city_lons.append(clon)
+                city_texts.append(f"{ciudad}<br><b>{km} km</b>")
+                city_sizes.append(12)
+                city_colors.append("#1E293B")
+
+            fig_map.add_scattermapbox(
+                lat=city_lats,
+                lon=city_lons,
+                mode="markers+text",
+                marker=dict(size=city_sizes, color=city_colors),
+                text=[c.split()[1] + f"<br>{haversine_simple(dept_lat, dept_lon, clat, clon)}km"
+                      for c, (clat, clon) in CIUDADES_COORDS.items()],
+                textposition="top right",
+                textfont=dict(size=10, color="#1E293B"),
+                hovertext=[f"{c}: {haversine_simple(dept_lat, dept_lon, clat, clon)} km"
+                           for c, (clat, clon) in CIUDADES_COORDS.items()],
+                hoverinfo="text",
+                showlegend=False,
+            )
+
+            # Marcador del departamento seleccionado
+            fig_map.add_scattermapbox(
+                lat=[dept_lat], lon=[dept_lon],
+                mode="markers",
+                marker=dict(size=16, color="#0D9488"),
+                hovertext=[dept_name],
+                hoverinfo="text",
+                showlegend=False,
+            )
+
+            fig_map.update_layout(
+                paper_bgcolor="white",
+                margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            )
+            st.plotly_chart(fig_map, use_container_width=True)
+        else:
+            # Fallback si no carga el geojson
+            dept_df = pd.DataFrame([{"lat": dept_lat, "lon": dept_lon, "name": dept_name}])
+            fig_map = px.scatter_mapbox(
+                dept_df, lat="lat", lon="lon", hover_name="name",
+                zoom=6, center={"lat": dept_lat, "lon": dept_lon},
+                mapbox_style="carto-positron", height=300,
+                color_discrete_sequence=["#0D9488"],
+            )
+            fig_map.update_traces(marker=dict(size=15))
+            fig_map.update_layout(paper_bgcolor="white", margin={"r":0,"t":0,"l":0,"b":0})
+            st.plotly_chart(fig_map, use_container_width=True)
     nav_buttons(0)
