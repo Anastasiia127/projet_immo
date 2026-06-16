@@ -1425,7 +1425,7 @@ with tab5:
                     "Francia":      "#E2E8F0",
                 },
                 mapbox_style="carto-positron",
-                zoom=6.7,
+                zoom=7,
                 center={"lat": dept_lat, "lon": dept_lon},
                 opacity=0.75,
                 height=420,
